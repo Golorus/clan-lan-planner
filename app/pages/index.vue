@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { MapPerson } from '~/components/SeatMap.vue'
+import type { MapPerson } from '../components/SeatMap.vue'
 
 useHead({ title: 'Sitzplan' })
 const { appName } = useBranding()

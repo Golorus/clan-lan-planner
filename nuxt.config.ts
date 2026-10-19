@@ -5,10 +5,13 @@ import { fileURLToPath } from 'node:url'
 
 /** Migrationen dieses Planners; als absoluter Pfad, damit sie auch gefunden werden, wenn ein anderes Repo den Planner per extends einbindet */
 const MIGRATIONS = fileURLToPath(new URL('./server/database/migrations', import.meta.url))
+/** #shared zeigt sonst auf shared/ des einbindenden Projekts, nicht auf unseren Ordner */
+const SHARED = fileURLToPath(new URL('./shared', import.meta.url))
 
 export default defineNuxtConfig({
   compatibilityDate: '2026-10-01',
   devtools: { enabled: false },
+  alias: { '#shared': SHARED },
   modules: ['nuxt-auth-utils'],
 
   app: {

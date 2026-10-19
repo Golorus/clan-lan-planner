@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Member } from '~/components/MemberPicker.vue'
+import type { Member } from '../../components/MemberPicker.vue'
 
 definePageMeta({ middleware: 'leader' })
 useHead({ title: 'Kontaktpersonen · Orga' })

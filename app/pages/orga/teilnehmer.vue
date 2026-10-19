@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { EventFields } from '~/components/EventForm.vue'
-import type { Member } from '~/components/MemberPicker.vue'
+import type { EventFields } from '../../components/EventForm.vue'
+import type { Member } from '../../components/MemberPicker.vue'
 import { compareByStage, reachOf, stageOf, STAGES, unreached, type Reach, type Stage } from '#shared/utils/participantStage'
 
 definePageMeta({ middleware: 'leader' })
