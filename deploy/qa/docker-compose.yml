@@ -1,0 +1,30 @@
+# QA-Umgebung: derselbe Planner aus dem Branch „qa“ mit ausgedachten Daten (ANLEITUNG-QA.md).
+# Läuft neben der Live-App als eigenes Compose-Projekt „lan-planner-qa“, hinter demselben Traefik (wie docker-compose.yml).
+# Keine Volumes: jeder Deploy startet mit frischer Datenbank und legt die Demo-Daten neu an.
+name: lan-planner-qa
+
+services:
+  app:
+    build: ../..
+    image: clan-lan-planner:qa
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NUXT_PUBLIC_DEMO: "true"
+    expose:
+      - "3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.lan-planner-qa.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.lan-planner-qa.entrypoints=websecure"
+      - "traefik.http.routers.lan-planner-qa.tls.certresolver=letsencrypt"
+      # Passwortschutz: nur wer QA_BASIC_AUTH kennt, sieht die Testseite; Discord-Knöpfe (Interactions) dürfen ohne
+      - "traefik.http.middlewares.lan-planner-qa-auth.basicauth.users=${QA_BASIC_AUTH}"
+      - "traefik.http.routers.lan-planner-qa.middlewares=lan-planner-qa-auth"
+      - "traefik.http.routers.lan-planner-qa-discord.rule=Host(`${DOMAIN}`) && Path(`/api/discord/interactions`)"
+      - "traefik.http.routers.lan-planner-qa-discord.entrypoints=websecure"
+      - "traefik.http.routers.lan-planner-qa-discord.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.lan-planner-qa-discord.priority=100"
+      - "traefik.http.routers.lan-planner-qa-discord.service=lan-planner-qa"
+      - "traefik.http.routers.lan-planner-qa.service=lan-planner-qa"
+      - "traefik.http.services.lan-planner-qa.loadbalancer.server.port=3000"

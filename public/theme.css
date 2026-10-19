@@ -1,0 +1,43 @@
+/*
+ * Farben des Planners, hell und dunkel. Eine Quelle für die Nuxt-Seiten (nuxt.config.ts) und den
+ * Stand-Planer (server/utils/planerPage.ts), damit beide gleich aussehen.
+ * data-theme="light" erzwingt Hell (der Stand-Planer setzt es beim Drucken), data-theme="dark" Dunkel.
+ */
+:root {
+  --bg: #f6f7f4;
+  --card: #ffffff;
+  --text: #1d231c;
+  --muted: #5d6a5a;
+  --accent: #2f7d4f;
+  --accent-text: #ffffff;
+  --border: #d9ded5;
+  --err: #b3261e;
+  --discord: #5865f2;
+  --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141814;
+    --card: #1d221d;
+    --text: #e8ece6;
+    --muted: #a3ae9f;
+    --accent: #5fbf85;
+    --accent-text: #0d1a12;
+    --border: #2f372e;
+    --err: #f2867d;
+  }
+}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] {
+  --bg: #141814;
+  --card: #1d221d;
+  --text: #e8ece6;
+  --muted: #a3ae9f;
+  --accent: #5fbf85;
+  --accent-text: #0d1a12;
+  --border: #2f372e;
+  --err: #f2867d;
+  color-scheme: dark;
+}

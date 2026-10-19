@@ -1,0 +1,11 @@
+node_modules
+.nuxt
+.output
+.data
+data
+.env
+*.log
+test-out
+vorlage
+.deployed-rev
+.auto-deploy.lock

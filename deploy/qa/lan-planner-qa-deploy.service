@@ -1,0 +1,9 @@
+# Kopieren nach /etc/systemd/system/ (ANLEITUNG-QA.md)
+[Unit]
+Description=Clan LAN Planner QA: neuen Stand aus dem Branch qa ausrollen
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/lan-planner-qa/deploy/qa/auto-deploy.sh
