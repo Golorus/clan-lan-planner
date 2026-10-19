@@ -26,6 +26,24 @@ async function loadAvatars() {
   }
 }
 
+/** Slash-Befehle der Module (z. B. /led), erscheinen erst nach dem Anmelden bei Discord */
+const { data: cmds } = await useFetch('/api/orga/discord/befehle', { key: 'orga-discord-befehle' })
+const cmdState = ref('')
+async function registerCommands() {
+  busy.value = true
+  cmdState.value = 'Melde an …'
+  try {
+    const r = await api<{ names: string[] }>('/api/orga/discord/befehle', { method: 'POST' })
+    cmdState.value = r.names.length ? `Angemeldet: ${r.names.map(n => '/' + n).join(', ')}` : 'Keine Befehle, bisherige entfernt.'
+  }
+  catch (e) {
+    cmdState.value = apiError(e)
+  }
+  finally {
+    busy.value = false
+  }
+}
+
 async function testBot() {
   busy.value = true
   testState.value = 'Sende …'
@@ -66,6 +84,18 @@ async function testBot() {
       <div class="row">
         <button class="btn" :disabled="busy" @click="testBot">Test-Nachricht senden</button>
         <span class="muted small">{{ testState }}</span>
+      </div>
+    </section>
+
+    <section v-if="cmds?.commands.length" class="card">
+      <h2>Befehle</h2>
+      <p class="muted small">
+        Module bringen eigene Slash-Befehle mit: <span v-for="(c, i) in cmds.commands" :key="c.name">{{ i ? ', ' : '' }}<code>/{{ c.name }}</code> ({{ c.description }})</span>.
+        Nach einem Update hier einmal neu anmelden. Sie gelten nur auf unserem Server.
+      </p>
+      <div class="row">
+        <button class="btn" :disabled="busy || !cmds.botConfigured" @click="registerCommands">Befehle bei Discord anmelden</button>
+        <span class="muted small">{{ cmdState }}</span>
       </div>
     </section>
 

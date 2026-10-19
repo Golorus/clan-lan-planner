@@ -335,3 +335,14 @@ export async function memberAvatars() {
   }
   return map
 }
+
+/**
+ * Meldet die Slash-Befehle der Module auf unserem Server an (ersetzt alle bisherigen Server-Befehle der Anwendung).
+ * Die Anwendungs-ID ist die Client-ID aus dem Discord-Login.
+ */
+export async function putGuildCommands(commands: { name: string, description: string, options?: unknown[] }[]) {
+  const appId = String(useRuntimeConfig().oauth.discord.clientId || '').trim()
+  if (!appId) throw createError({ statusCode: 500, statusMessage: 'NUXT_OAUTH_DISCORD_CLIENT_ID fehlt' })
+  return discordApi<{ name: string }[]>('PUT', `/applications/${appId}/guilds/${guildId()}/commands`,
+    commands.map(c => ({ type: 1, name: c.name, description: c.description.slice(0, 100), options: c.options ?? [] })))
+}

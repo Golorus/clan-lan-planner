@@ -27,6 +27,8 @@ export default async function (ctx) {
     check(tf.data?.type === 9 && tf.data?.data?.custom_id === 'tsm', 'Test-Nachricht: „Formular testen“ öffnet ein Formular')
     const ts = await interaction({ type: 5, user: { id: ID.rot }, data: { custom_id: 'tsm', components: [{ components: [{ custom_id: 'seat', value: 'A-1' }] }] }, message: { content: 'Test' } })
     check(ts.data?.type === 7 && /Formular funktioniert/.test(ts.data?.data?.content), 'Test-Formular abgeschickt, nichts eingetragen')
+    const unk = await interaction({ type: 2, user: { id: ID.rot }, data: { name: 'gibtsnicht' } })
+    check(unk.data?.type === 4 && unk.data?.data?.flags === 64 && /kenne ich nicht/.test(unk.data?.data?.content), 'Unbekannter Slash-Befehl: Hinweis nur für den Aufrufer')
   }
 
   console.log('Rollen')
@@ -44,6 +46,12 @@ export default async function (ctx) {
   const av = await leader.post('/api/orga/avatare')
   check(av.status === 500 && /Bot ist nicht eingerichtet/.test(av.data.statusMessage), `Avatare holen ohne Bot: verständlicher Fehler (${av.status})`)
   await expectStatus(rot.post('/api/orga/avatare'), 403, 'Kontaktperson holt Avatare')
+
+  const bef = await expectStatus(leader.get('/api/orga/discord/befehle'), 200, 'Slash-Befehle der Module lesen')
+  check(Array.isArray(bef.data.commands), 'Liste der Slash-Befehle')
+  await expectStatus(leader.post('/api/orga/discord/befehle'), 500, 'Befehle anmelden ohne Bot: verständlicher Fehler')
+  await expectStatus(rot.get('/api/orga/discord/befehle'), 403, 'Kontaktperson liest die Slash-Befehle')
+  await expectStatus(rot.post('/api/orga/discord/befehle'), 403, 'Kontaktperson meldet Befehle an')
 
   console.log('Discord-Einstellungen in /orga')
   for (const [who, s] of [['Teilnehmer', anna], ['Kontaktperson', rot]]) {
