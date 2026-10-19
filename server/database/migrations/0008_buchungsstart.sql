@@ -1,0 +1,1 @@
+ALTER TABLE `events` ADD `booking_from` text DEFAULT '' NOT NULL;

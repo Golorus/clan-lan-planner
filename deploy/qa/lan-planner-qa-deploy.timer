@@ -1,0 +1,10 @@
+# Kopieren nach /etc/systemd/system/, dann: systemctl enable --now lan-planner-qa-deploy.timer
+[Unit]
+Description=Clan LAN Planner QA: jede Minute nach neuen Commits auf qa schauen
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+
+[Install]
+WantedBy=timers.target

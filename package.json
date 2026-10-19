@@ -1,0 +1,32 @@
+{
+  "name": "clan-lan-planner",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "node .output/server/index.mjs",
+    "postinstall": "nuxt prepare",
+    "db:generate": "drizzle-kit generate",
+    "test": "vitest run",
+    "test:e2e:server": "node tests/e2e/index.mjs",
+    "test:e2e": "node tests/e2e/run.mjs"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "drizzle-orm": "^0.45.4",
+    "nuxt": "^4.6.1",
+    "nuxt-auth-utils": "^0.5.31",
+    "vue": "^3.5.44",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "drizzle-kit": "^0.31.11",
+    "playwright-core": "^1.64.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11",
+    "vue-tsc": "^3.3.13"
+  }
+}

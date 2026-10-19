@@ -1,0 +1,22 @@
+name: clan-lan-planner
+
+services:
+  app:
+    build: .
+    image: clan-lan-planner:latest
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      # Datenbank und hochgeladene Bilder liegen auf dem VPS unter ./data (Backup: deploy/backup.sh)
+      - ./data/db:/data/db
+      - ./data/uploads:/data/uploads
+    expose:
+      - "3000"
+    # Der vorhandene Traefik auf dem VPS (/docker/traefik) leitet die Domain hierher weiter
+    # und holt das HTTPS-Zertifikat über seinen Resolver „letsencrypt“.
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.clan-lan-planner.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.clan-lan-planner.entrypoints=websecure"
+      - "traefik.http.routers.clan-lan-planner.tls.certresolver=letsencrypt"
+      - "traefik.http.services.clan-lan-planner.loadbalancer.server.port=3000"
