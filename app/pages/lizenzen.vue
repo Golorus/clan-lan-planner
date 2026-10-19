@@ -50,7 +50,7 @@ const license = (holder: string) => `MIT License\n\nCopyright (c) 2026 ${holder}
       <h2>Lizenzen</h2>
       <h3>Dieser Planner</h3>
       <p>Der Planner selbst steht unter der MIT-Lizenz und wird ohne Support veröffentlicht:</p>
-      <pre class="license">{{ license('Golorus') }}</pre>
+      <pre class="license">{{ license('André Fichtner-Winkler') }}</pre>
 
       <h3>Seat-Planner</h3>
       <p>
