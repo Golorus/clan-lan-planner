@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { formatEventRange } from '#shared/utils/eventTime'
-import type { EventFields } from '~/components/EventForm.vue'
+import type { EventFields } from '../../components/EventForm.vue'
 
 definePageMeta({ middleware: 'leader' })
 useHead({ title: 'Events · Orga' })

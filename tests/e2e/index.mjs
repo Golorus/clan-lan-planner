@@ -5,6 +5,10 @@
 //
 // Die Themen bauen aufeinander auf (gleiche Events, Personen, Plätze) und laufen deshalb nur zusammen und in
 // dieser Reihenfolge; ctx reicht die gemeinsamen Werte von einer Datei an die nächste weiter.
+import { existsSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
+import * as lib from './lib.mjs'
 import { client, ID, login, problems } from './lib.mjs'
 import t01 from './01-einrichten.mjs'
 import t02 from './02-plaetze.mjs'
@@ -38,8 +42,19 @@ if (setup.data?.botConfigured) {
   process.exit(2)
 }
 
-const ctx = { anon, leader, rot, blau, anna, ben, cem }
+const ctx = { anon, leader, rot, blau, anna, ben, cem, lib }
 for (const run of [t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t13]) await run(ctx)
+
+// Tests eigener Erweiterungen: layers/*/tests/e2e/*.mjs im Projekt, das den Test startet (bekommen ctx mit ctx.lib)
+const layers = join(process.cwd(), 'layers')
+for (const layer of existsSync(layers) ? readdirSync(layers).sort() : []) {
+  const dir = join(layers, layer, 'tests', 'e2e')
+  if (!existsSync(dir)) continue
+  for (const file of readdirSync(dir).filter(f => f.endsWith('.mjs')).sort()) {
+    const mod = await import(pathToFileURL(join(dir, file)).href)
+    if (typeof mod.default === 'function') await mod.default(ctx)
+  }
+}
 
 console.log(problems.length ? `\n${problems.length} Problem(e):\n` + problems.join('\n') : '\nAlles ok.')
 process.exit(problems.length ? 1 : 0)

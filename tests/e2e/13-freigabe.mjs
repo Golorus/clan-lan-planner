@@ -1,9 +1,9 @@
-import { BASE, check, client, expectStatus, ID, interaction } from './lib.mjs'
+import { BASE, check, client, expectStatus, ID, interaction, SESSION_COOKIE } from './lib.mjs'
 
 /** Unbekannte (ohne Server/Clan-Rolle) müssen eine Freigabe anfragen; Kontaktperson per Knopf oder Orga entscheidet */
 async function stranger(id, name, member) {
   const res = await fetch(`${BASE}/auth/dev-login?as=${id}&name=${encodeURIComponent(name)}&mitglied=${member ? 1 : 0}`, { redirect: 'manual' })
-  const cookie = (res.headers.getSetCookie?.() ?? []).map(c => c.split(';')[0]).find(c => c.startsWith('lan-planner-session='))
+  const cookie = (res.headers.getSetCookie?.() ?? []).map(c => c.split(';')[0]).find(c => c.startsWith(SESSION_COOKIE + '='))
   return client(cookie, name)
 }
 const code = res => res.data?.data?.code

@@ -2,6 +2,7 @@
 // lässt tests/e2e/index.mjs dagegen laufen und beendet ihn wieder. Eine .env im Projekt wird dabei
 // nicht benutzt, soweit es um Discord geht: Token, Server, Secret und Rollen werden hier überschrieben.
 import { spawn, spawnSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import { createPrivateKey, createPublicKey } from 'node:crypto'
 import { copyFileSync, existsSync, mkdirSync, rmSync, createWriteStream } from 'node:fs'
 
@@ -75,7 +76,7 @@ try {
     if (ok) break
     await new Promise(r => setTimeout(r, 1000))
   }
-  const test = spawn(process.execPath, ['tests/e2e/index.mjs'], { env: { ...process.env, BASE }, stdio: 'inherit' })
+  const test = spawn(process.execPath, [fileURLToPath(new URL('./index.mjs', import.meta.url))], { env: { ...process.env, BASE }, stdio: 'inherit' })
   code = await new Promise(r => test.on('exit', c => r(c ?? 1)))
 }
 catch (e) {

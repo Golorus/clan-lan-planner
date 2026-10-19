@@ -1,3 +1,4 @@
+/// <reference path="../../shared/types/auth.d.ts" />
 import type { H3Event } from 'h3'
 
 /** Notzugang: die feste Discord-ID aus NUXT_LEADER_DISCORD_ID ist immer Projektleiter */
