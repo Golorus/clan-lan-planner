@@ -18,7 +18,11 @@ Was nur für deinen Clan sinnvoll ist, baust du als [Nuxt-Layer](https://nuxt.co
 - Weitere Skript-Quellen für die CSP ergänzt er über `runtimeConfig.csp.scriptSrc`.
 - Daten legt er im allgemeinen Modul-Speicher ab (Tabellen `docs` und `assets` in `server/database/schema.ts`), damit es bei einer Kette von Migrationen bleibt.
 
-Alternativ bindest du den Planner in deinem eigenen Repository per `extends: ['github:Golorus/clan-lan-planner#<tag>']` ein und legst dort nur deine Layer ab.
+Alternativ bindest du den Planner in deinem eigenen Repository per `extends: ['github:Golorus/clan-lan-planner#<tag>']` ein und legst dort nur deine Layer ab. Dabei gilt:
+
+- Die Abhängigkeiten aus der `package.json` des Planners gehören auch in deine `package.json`.
+- Die Migrationen landen beim Build in `.output/migrations`; das Dockerfile des Planners zeigt, wie der Container sie findet.
+- `node node_modules/.c12/<ordner des planners>/tests/e2e/run.mjs` startet die End-to-End-Tests des Planners in deinem Projekt und führt danach die Tests deiner Layer aus (`layers/*/tests/e2e/*.mjs`, jede Datei mit einer Funktion als Default-Export, die `ctx` mit den Testhilfen in `ctx.lib` bekommt). Hast du den Namen des Session-Cookies geändert, gib ihn mit `E2E_SESSION_COOKIE` an.
 
 ## Kein Support
 

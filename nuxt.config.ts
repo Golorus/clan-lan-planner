@@ -1,4 +1,11 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { cpSync } from 'node:fs'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+/** Migrationen dieses Planners; als absoluter Pfad, damit sie auch gefunden werden, wenn ein anderes Repo den Planner per extends einbindet */
+const MIGRATIONS = fileURLToPath(new URL('./server/database/migrations', import.meta.url))
+
 export default defineNuxtConfig({
   compatibilityDate: '2026-10-01',
   devtools: { enabled: false },
@@ -22,7 +29,7 @@ export default defineNuxtConfig({
     /** SQLite-Datei und Upload-Ordner (im Container: Volumes) */
     dbPath: './data/db/planner.sqlite',
     uploadDir: './data/uploads',
-    migrationsDir: './server/database/migrations',
+    migrationsDir: MIGRATIONS,
     /** zusätzliche Skript-Quellen für die CSP (server/middleware/security-headers.ts), von Modulen ergänzt */
     csp: { scriptSrc: [] as string[] },
     discord: {
@@ -71,5 +78,7 @@ export default defineNuxtConfig({
     // Erinnerungen und Warteliste: server/tasks/registrierung/takt.ts jede Minute
     experimental: { tasks: true },
     scheduledTasks: { '* * * * *': ['registrierung:takt'] },
+    // die Migrationen mit in .output, damit der Container sie hat (Dockerfile: NUXT_MIGRATIONS_DIR)
+    hooks: { compiled: nitro => cpSync(MIGRATIONS, join(nitro.options.output.dir, 'migrations'), { recursive: true }) },
   },
 })

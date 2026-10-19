@@ -15,9 +15,8 @@ ENV NODE_ENV=production \
     PORT=3000 \
     NUXT_DB_PATH=/data/db/planner.sqlite \
     NUXT_UPLOAD_DIR=/data/uploads \
-    NUXT_MIGRATIONS_DIR=/app/migrations
+    NUXT_MIGRATIONS_DIR=/app/.output/migrations
 COPY --from=build /app/.output ./.output
-COPY --from=build /app/server/database/migrations ./migrations
 RUN mkdir -p /data/db /data/uploads && chown -R node:node /data
 USER node
 EXPOSE 3000

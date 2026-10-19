@@ -1,6 +1,8 @@
 // Hilfen für den End-to-End-Test (tests/e2e/index.mjs): angemeldete Personen, Prüfungen, signierte Discord-Knöpfe.
 import { createPrivateKey, createPublicKey, sign } from 'node:crypto'
 export const BASE = process.env.BASE || 'http://localhost:3000'
+/** Name des Session-Cookies; ein einbindendes Repo kann ihn ändern (runtimeConfig.session.name) */
+export const SESSION_COOKIE = process.env.E2E_SESSION_COOKIE || 'lan-planner-session'
 
 export const problems = []
 export const check = (ok, what) => { console.log((ok ? '  ok   ' : '  FEHLER ') + what); if (!ok) problems.push(what) }
@@ -8,7 +10,7 @@ export const check = (ok, what) => { console.log((ok ? '  ok   ' : '  FEHLER ') 
 /** Eine angemeldete Person mit eigenem Session-Cookie */
 export async function login(as, name, orga = !as) {
   const res = await fetch(`${BASE}/auth/dev-login${as ? `?as=${as}&name=${encodeURIComponent(name)}` : ''}`, { redirect: 'manual' })
-  const cookie = (res.headers.getSetCookie?.() ?? []).map(c => c.split(';')[0]).find(c => c.startsWith('lan-planner-session='))
+  const cookie = (res.headers.getSetCookie?.() ?? []).map(c => c.split(';')[0]).find(c => c.startsWith(SESSION_COOKIE + '='))
   if (!cookie) throw new Error('dev-login hat kein Cookie gesetzt – läuft „npm run dev“?')
   // die Orga handelt wie von einer /orga-Seite aus (Orga-Rechte gelten nur dort, shared/utils/orgaContext.ts)
   return client(cookie, name, orga)
