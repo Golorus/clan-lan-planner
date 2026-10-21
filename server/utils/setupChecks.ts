@@ -29,3 +29,15 @@ export async function moduleSetupChecks(): Promise<ConfigCheck[]> {
   }
   return out
 }
+
+/** Schlüssel aus runtimeConfig.setupScope; aus der .env kommt er als Komma-Liste */
+export function parseScope(v: unknown): string[] {
+  const list = Array.isArray(v) ? v : String(v ?? '').split(',')
+  return list.map(x => String(x).trim()).filter(Boolean)
+}
+
+/** Warnungen zu Teilen, die diese Instanz nutzt, sind Fehler: Ohne sie fehlt etwas vom Umfang */
+export function applyScope(checks: ConfigCheck[], scope: string[]): ConfigCheck[] {
+  const s = new Set(scope)
+  return checks.map(c => c.level === 'warn' && s.has(c.key) ? { ...c, level: 'error' } : c)
+}

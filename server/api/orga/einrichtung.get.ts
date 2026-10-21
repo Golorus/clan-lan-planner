@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
   setHeader(event, 'Cache-Control', 'no-store')
   const cfg = useRuntimeConfig()
   return {
-    checks: [...checkConfig({
+    checks: applyScope([...checkConfig({
       appUrl: appUrl(),
       sessionPassword: cfg.session.password,
       leaderDiscordId: cfg.leaderDiscordId,
@@ -16,6 +16,6 @@ export default defineEventHandler(async (event) => {
       eventRoleIdOrga: getDiscordSettings().eventRoleId,
       publicKey: cfg.discord.publicKey,
       dev: import.meta.dev,
-    }), ...await moduleSetupChecks()],
+    }), ...await moduleSetupChecks()], parseScope(cfg.setupScope)),
   }
 })
