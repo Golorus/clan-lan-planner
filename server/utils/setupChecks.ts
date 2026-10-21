@@ -6,6 +6,7 @@
  *
  * Wie bei checkConfig nennen die Texte nie geheime Werte, nur ob sie gesetzt sind.
  */
+import { eq } from 'drizzle-orm'
 import type { ConfigCheck } from './configCheck'
 
 type SetupCheck = () => ConfigCheck[] | Promise<ConfigCheck[]>
@@ -40,4 +41,28 @@ export function parseScope(v: unknown): string[] {
 export function applyScope(checks: ConfigCheck[], scope: string[]): ConfigCheck[] {
   const s = new Set(scope)
   return checks.map(c => c.level === 'warn' && s.has(c.key) ? { ...c, level: 'error' } : c)
+}
+
+export const scopeKeySchema = /^[a-z0-9-]{1,40}$/
+
+/**
+ * Umfang der Instanz: von der Orga in /orga › Discord gesetzt (settings, Schlüssel „setupScope“),
+ * sonst aus runtimeConfig.setupScope bzw. NUXT_SETUP_SCOPE.
+ */
+export function currentScope(): { keys: string[], source: 'orga' | 'config' } {
+  const row = useDb().select().from(tables.settings).where(eq(tables.settings.key, 'setupScope')).get()
+  if (row) return { keys: parseScope(JSON.parse(row.value)), source: 'orga' }
+  return { keys: parseScope(useRuntimeConfig().setupScope), source: 'config' }
+}
+
+/** keys null = wieder der Standard aus der Konfiguration */
+export function saveScope(keys: string[] | null) {
+  const db = useDb()
+  if (keys === null) {
+    db.delete(tables.settings).where(eq(tables.settings.key, 'setupScope')).run()
+    return
+  }
+  const value = JSON.stringify([...new Set(keys)].sort())
+  db.insert(tables.settings).values({ key: 'setupScope', value })
+    .onConflictDoUpdate({ target: tables.settings.key, set: { value } }).run()
 }

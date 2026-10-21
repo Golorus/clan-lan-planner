@@ -2,7 +2,24 @@
 definePageMeta({ middleware: 'leader' })
 useHead({ title: 'Discord · Orga' })
 
-const { data: setup } = await useFetch('/api/orga/einrichtung', { key: 'orga-einrichtung' })
+const { data: setup, refresh: refreshSetup } = await useFetch('/api/orga/einrichtung', { key: 'orga-einrichtung' })
+
+/** Umfang: Was angehakt ist, nutzen wir; fehlt es, ist die Zeile rot statt gelb */
+const scopeState = ref('')
+async function saveScope(keys: string[] | null) {
+  scopeState.value = ''
+  try {
+    await api('/api/orga/einrichtung/umfang', { method: 'PUT', body: { keys } })
+    await refreshSetup()
+  }
+  catch (e) {
+    scopeState.value = apiError(e)
+  }
+}
+function toggleScope(key: string, on: boolean) {
+  const keys = (setup.value?.checks ?? []).filter(c => c.inScope && c.key !== key).map(c => c.key)
+  saveScope(on ? [...keys, key] : keys)
+}
 const ICON = { ok: '✓', warn: '!', error: '✗' } as const
 
 const testState = ref('')
@@ -66,12 +83,24 @@ async function testBot() {
 
     <section class="card">
       <h2>Einrichtung</h2>
-      <p class="muted small">Aus der .env und den Einstellungen in /orga, ohne Discord zu fragen. Geheime Werte stehen hier nie.</p>
+      <p class="muted small">
+        Aus der .env und den Einstellungen in /orga, ohne Discord zu fragen. Geheime Werte stehen hier nie.
+        Mit dem Haken „nutzen wir“ gehört eine Zeile zu unserem Umfang: Fehlt dann etwas, ist sie rot statt gelb.
+      </p>
       <ul class="checks">
         <li v-for="c in setup?.checks ?? []" :key="c.key" :class="c.level">
-          <span class="icon" aria-hidden="true">{{ ICON[c.level] }}</span> {{ c.text }}
+          <span class="icon" aria-hidden="true">{{ ICON[c.level] }}</span>
+          <span class="text">{{ c.text }}</span>
+          <label class="scope muted small" :title="`Schlüssel: ${c.key}`">
+            <input type="checkbox" :checked="c.inScope" @change="toggleScope(c.key, ($event.target as HTMLInputElement).checked)"> nutzen wir
+          </label>
         </li>
       </ul>
+      <p class="muted small">
+        <template v-if="setup?.scopeSource === 'orga'">Umfang hier in /orga gesetzt. <a href="#" @click.prevent="saveScope(null)">Zurück zum Standard aus der Konfiguration</a></template>
+        <template v-else>Umfang aus der Konfiguration (NUXT_SETUP_SCOPE).</template>
+        {{ scopeState }}
+      </p>
     </section>
 
     <section class="card">
@@ -117,7 +146,10 @@ async function testBot() {
 
 <style scoped>
 .checks { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; font-size: 14px; }
-.checks .icon { display: inline-block; width: 1.2em; font-weight: 700; text-align: center; }
+.checks li { display: flex; gap: 6px; align-items: baseline; }
+.checks .icon { display: inline-block; width: 1.2em; flex: none; font-weight: 700; text-align: center; }
+.checks .text { flex: 1; }
+.checks .scope { flex: none; white-space: nowrap; color: var(--muted); }
 .checks .ok .icon { color: var(--accent); }
 .checks .warn .icon { color: var(--muted); }
 .checks .error { color: var(--err); }

@@ -53,6 +53,18 @@ export default async function (ctx) {
   await expectStatus(rot.get('/api/orga/discord/befehle'), 403, 'Kontaktperson liest die Slash-Befehle')
   await expectStatus(rot.post('/api/orga/discord/befehle'), 403, 'Kontaktperson meldet Befehle an')
 
+  console.log('Umfang der Einrichtung')
+  let ampel = (await leader.get('/api/orga/einrichtung')).data
+  check(ampel.scopeSource === 'config' && ampel.checks.find(c => c.key === 'bot')?.level === 'warn', 'ohne Umfang: kein Bot ist gelb')
+  await expectStatus(rot.put('/api/orga/einrichtung/umfang', { keys: ['bot'] }), 403, 'Kontaktperson setzt den Umfang')
+  await expectStatus(leader.put('/api/orga/einrichtung/umfang', { keys: ['Bot!'] }), 400, 'Umfang mit kaputtem Schlüssel')
+  await expectStatus(leader.put('/api/orga/einrichtung/umfang', { keys: ['bot', 'public-key'] }), 200, 'Orga hakt Bot und Knöpfe an')
+  ampel = (await leader.get('/api/orga/einrichtung')).data
+  check(ampel.scopeSource === 'orga' && ampel.checks.find(c => c.key === 'bot')?.level === 'error' && ampel.checks.find(c => c.key === 'bot')?.inScope, 'im Umfang: kein Bot ist rot')
+  await expectStatus(leader.put('/api/orga/einrichtung/umfang', { keys: null }), 200, 'Umfang zurück zum Standard')
+  ampel = (await leader.get('/api/orga/einrichtung')).data
+  check(ampel.scopeSource === 'config' && ampel.checks.find(c => c.key === 'bot')?.level === 'warn', 'Standard: wieder gelb')
+
   console.log('Discord-Einstellungen in /orga')
   for (const [who, s] of [['Teilnehmer', anna], ['Kontaktperson', rot]]) {
     await expectStatus(s.get('/api/orga/discord/rollen'), 403, `${who} liest die Rollen-Einstellungen`)
