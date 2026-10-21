@@ -33,6 +33,12 @@ export default defineNuxtConfig({
     dbPath: './data/db/planner.sqlite',
     uploadDir: './data/uploads',
     migrationsDir: MIGRATIONS,
+    /**
+     * Was diese Instanz nutzt: Schlüssel der Ampel in /orga › Discord (z. B. bot, public-key, event-role).
+     * Eine Warnung zu einem dieser Schlüssel zählt als Fehler. Leer = nur Ungültiges ist rot.
+     * Per .env als Komma-Liste: NUXT_SETUP_SCOPE=bot,public-key
+     */
+    setupScope: [] as string[],
     /** zusätzliche Skript-Quellen für die CSP (server/middleware/security-headers.ts), von Modulen ergänzt */
     csp: { scriptSrc: [] as string[] },
     discord: {

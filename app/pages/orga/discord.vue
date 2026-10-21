@@ -2,7 +2,24 @@
 definePageMeta({ middleware: 'leader' })
 useHead({ title: 'Discord · Orga' })
 
-const { data: setup } = await useFetch('/api/orga/einrichtung', { key: 'orga-einrichtung' })
+const { data: setup, refresh: refreshSetup } = await useFetch('/api/orga/einrichtung', { key: 'orga-einrichtung' })
+
+/** Umfang: Was angehakt ist, nutzen wir; fehlt es, ist die Zeile rot statt gelb */
+const scopeState = ref('')
+async function saveScope(keys: string[] | null) {
+  scopeState.value = ''
+  try {
+    await api('/api/orga/einrichtung/umfang', { method: 'PUT', body: { keys } })
+    await refreshSetup()
+  }
+  catch (e) {
+    scopeState.value = apiError(e)
+  }
+}
+function toggleScope(key: string, on: boolean) {
+  const keys = (setup.value?.checks ?? []).filter(c => c.inScope && c.key !== key).map(c => c.key)
+  saveScope(on ? [...keys, key] : keys)
+}
 const ICON = { ok: '✓', warn: '!', error: '✗' } as const
 
 const testState = ref('')
@@ -20,6 +37,24 @@ async function loadAvatars() {
   }
   catch (e) {
     avatarState.value = apiError(e)
+  }
+  finally {
+    busy.value = false
+  }
+}
+
+/** Slash-Befehle der Module (z. B. /led), erscheinen erst nach dem Anmelden bei Discord */
+const { data: cmds } = await useFetch('/api/orga/discord/befehle', { key: 'orga-discord-befehle' })
+const cmdState = ref('')
+async function registerCommands() {
+  busy.value = true
+  cmdState.value = 'Melde an …'
+  try {
+    const r = await api<{ names: string[] }>('/api/orga/discord/befehle', { method: 'POST' })
+    cmdState.value = r.names.length ? `Angemeldet: ${r.names.map(n => '/' + n).join(', ')}` : 'Keine Befehle, bisherige entfernt.'
+  }
+  catch (e) {
+    cmdState.value = apiError(e)
   }
   finally {
     busy.value = false
@@ -48,12 +83,24 @@ async function testBot() {
 
     <section class="card">
       <h2>Einrichtung</h2>
-      <p class="muted small">Aus der .env und den Einstellungen in /orga, ohne Discord zu fragen. Geheime Werte stehen hier nie.</p>
+      <p class="muted small">
+        Aus der .env und den Einstellungen in /orga, ohne Discord zu fragen. Geheime Werte stehen hier nie.
+        Mit dem Haken „nutzen wir“ gehört eine Zeile zu unserem Umfang: Fehlt dann etwas, ist sie rot statt gelb.
+      </p>
       <ul class="checks">
         <li v-for="c in setup?.checks ?? []" :key="c.key" :class="c.level">
-          <span class="icon" aria-hidden="true">{{ ICON[c.level] }}</span> {{ c.text }}
+          <span class="icon" aria-hidden="true">{{ ICON[c.level] }}</span>
+          <span class="text">{{ c.text }}</span>
+          <label class="scope muted small" :title="`Schlüssel: ${c.key}`">
+            <input type="checkbox" :checked="c.inScope" @change="toggleScope(c.key, ($event.target as HTMLInputElement).checked)"> nutzen wir
+          </label>
         </li>
       </ul>
+      <p class="muted small">
+        <template v-if="setup?.scopeSource === 'orga'">Umfang hier in /orga gesetzt. <a href="#" @click.prevent="saveScope(null)">Zurück zum Standard aus der Konfiguration</a></template>
+        <template v-else>Umfang aus der Konfiguration (NUXT_SETUP_SCOPE).</template>
+        {{ scopeState }}
+      </p>
     </section>
 
     <section class="card">
@@ -66,6 +113,18 @@ async function testBot() {
       <div class="row">
         <button class="btn" :disabled="busy" @click="testBot">Test-Nachricht senden</button>
         <span class="muted small">{{ testState }}</span>
+      </div>
+    </section>
+
+    <section v-if="cmds?.commands.length" class="card">
+      <h2>Befehle</h2>
+      <p class="muted small">
+        Module bringen eigene Slash-Befehle mit: <span v-for="(c, i) in cmds.commands" :key="c.name">{{ i ? ', ' : '' }}<code>/{{ c.name }}</code> ({{ c.description }})</span>.
+        Nach einem Update hier einmal neu anmelden. Sie gelten nur auf unserem Server.
+      </p>
+      <div class="row">
+        <button class="btn" :disabled="busy || !cmds.botConfigured" @click="registerCommands">Befehle bei Discord anmelden</button>
+        <span class="muted small">{{ cmdState }}</span>
       </div>
     </section>
 
@@ -87,7 +146,10 @@ async function testBot() {
 
 <style scoped>
 .checks { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; font-size: 14px; }
-.checks .icon { display: inline-block; width: 1.2em; font-weight: 700; text-align: center; }
+.checks li { display: flex; gap: 6px; align-items: baseline; }
+.checks .icon { display: inline-block; width: 1.2em; flex: none; font-weight: 700; text-align: center; }
+.checks .text { flex: 1; }
+.checks .scope { flex: none; white-space: nowrap; color: var(--muted); }
 .checks .ok .icon { color: var(--accent); }
 .checks .warn .icon { color: var(--muted); }
 .checks .error { color: var(--err); }

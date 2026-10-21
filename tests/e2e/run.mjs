@@ -49,6 +49,8 @@ const env = {
   NUXT_LEADER_DISCORD_ID: '410000000000000001',
   NUXT_DISCORD_ORGA_ROLE_ID: '444444444444444444',
   NUXT_DISCORD_EVENT_ROLE_ID: '',
+  // die Ampel-Tests erwarten die Stufen des Planners, nicht den Umfang des einbindenden Projekts
+  NUXT_SETUP_SCOPE: '',
 }
 
 const log = createWriteStream(LOG)

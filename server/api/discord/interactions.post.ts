@@ -1,7 +1,9 @@
 import { eq } from 'drizzle-orm'
+import type { CommandOption } from '../../utils/discordCommands'
 
 /**
- * Discord-Interactions: die Knöpfe in unseren Direktnachrichten („Bin dabei“, „Ich habe gebucht“, „Platz annehmen“ …).
+ * Discord-Interactions: die Knöpfe in unseren Direktnachrichten („Bin dabei“, „Ich habe gebucht“, „Platz annehmen“ …)
+ * und die Slash-Befehle der Module.
  * In der Discord-Anwendung unter General Information › Interactions Endpoint URL eintragen (ANLEITUNG-VPS.md).
  * Jede Anfrage ist mit dem Public Key der Anwendung signiert (NUXT_DISCORD_PUBLIC_KEY); ohne gültige Signatur 401.
  * Wer gedrückt hat, sagt Discord (interaction.user.id); das muss die Person der Teilnahme bzw. des Angebots sein.
@@ -15,7 +17,7 @@ const EPHEMERAL = 64
 
 interface Interaction {
   type: number
-  data?: { custom_id?: string, components?: { components?: { custom_id?: string, value?: string }[] }[] }
+  data?: { custom_id?: string, name?: string, options?: CommandOption[], components?: { components?: { custom_id?: string, value?: string }[] }[] }
   user?: { id: string }
   member?: { user?: { id: string } }
   message?: { content?: string }
@@ -48,6 +50,12 @@ export default defineEventHandler(async (event) => {
   if (!userId) return reply('Das hat nicht geklappt.')
 
   try {
+    // Slash-Befehle der Module (siehe server/utils/discordCommands.ts)
+    if (it.type === 2 || it.type === 4) {
+      const cmd = findDiscordCommand(it.data?.name)
+      if (!cmd) return it.type === 4 ? commandChoices([]) : reply('Diesen Befehl kenne ich nicht (mehr).')
+      return await cmd.handle({ type: it.type, userId, data: { name: cmd.name, options: it.data?.options } })
+    }
     // Formular aus der Test-Nachricht abgeschickt
     if (it.type === 5 && it.data?.custom_id === 'tsm') {
       const value = it.data.components?.[0]?.components?.[0]?.value?.trim() || '(leer)'
