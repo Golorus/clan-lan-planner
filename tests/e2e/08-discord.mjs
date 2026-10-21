@@ -29,6 +29,23 @@ export default async function (ctx) {
     check(ts.data?.type === 7 && /Formular funktioniert/.test(ts.data?.data?.content), 'Test-Formular abgeschickt, nichts eingetragen')
     const unk = await interaction({ type: 2, user: { id: ID.rot }, data: { name: 'gibtsnicht' } })
     check(unk.data?.type === 4 && unk.data?.data?.flags === 64 && /kenne ich nicht/.test(unk.data?.data?.content), 'Unbekannter Slash-Befehl: Hinweis nur für den Aufrufer')
+
+    // /leute: Stand der eigenen Leute
+    const mine = await interaction({ type: 2, user: { id: ID.rot }, data: { name: 'leute' } })
+    check(mine.data?.type === 4 && mine.data?.data?.flags === 64 && /^\*\*Deine Leute · /.test(mine.data?.data?.content), '/leute: Kontaktperson sieht ihre Leute, nur für sie sichtbar')
+    check(!/Ganze Liste/.test(mine.data?.data?.content), '/leute: Kontaktperson bekommt keinen Orga-Link')
+    const notGebucht = await interaction({ type: 2, user: { id: ID.rot }, data: { name: 'leute', options: [{ name: 'zeige', type: 3, value: 'nicht_gebucht' }] } })
+    check(notGebucht.data?.type === 4 && !/Noch nicht zugesagt/.test(notGebucht.data?.data?.content), '/leute zeige:nicht_gebucht: nur die Zugesagten ohne Buchung')
+    const other = await interaction({ type: 2, user: { id: ID.rot }, data: { name: 'leute', options: [{ name: 'kontakt', type: 3, value: 'alle' }] } })
+    check(/nur die Orga/.test(other.data?.data?.content), '/leute kontakt: nur für die Orga')
+    const stranger = await interaction({ type: 2, user: { id: ID.cem }, data: { name: 'leute' } })
+    check(stranger.data?.data?.flags === 64 && /nur Kontaktpersonen und die Orga/.test(stranger.data?.data?.content), '/leute: Teilnehmer ohne Kontaktrolle wird abgewiesen')
+    const all = await interaction({ type: 2, user: { id: '410000000000000001' }, data: { name: 'leute', options: [{ name: 'zeige', type: 3, value: 'alle' }] } })
+    check(/^\*\*Alle · /.test(all.data?.data?.content) && /Ganze Liste: <.*orga\/teilnehmer>/.test(all.data?.data?.content), '/leute: Orga sieht alle, mit Link zur Liste')
+    const ac = await interaction({ type: 4, user: { id: '410000000000000001' }, data: { name: 'leute', options: [{ name: 'kontakt', type: 3, value: 'ro', focused: true }] } })
+    check(ac.data?.type === 8 && ac.data.data.choices.some(c => c.name === 'alle') && ac.data.data.choices.some(c => /rot/i.test(c.name)), '/leute: Orga bekommt Kontaktpersonen vorgeschlagen')
+    const acRot = await interaction({ type: 4, user: { id: ID.rot }, data: { name: 'leute', options: [{ name: 'kontakt', type: 3, value: '', focused: true }] } })
+    check(acRot.data?.type === 8 && acRot.data.data.choices.length === 0, '/leute: Kontaktperson bekommt keine anderen vorgeschlagen')
   }
 
   console.log('Rollen')
