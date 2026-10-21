@@ -6,7 +6,7 @@ Planungs-Tool für einen Clan auf einer LAN-Party oder Messe, mit Login über Di
 - **Freigabe**: Unbekannte kommen erst rein, wenn ihre Kontaktperson per Discord-Knopf zustimmt (oder die Orga)
 - **Bedarfsabfrage**: Zusage und Absage mit Fristen, Warteliste mit automatischem Nachrücken, Platzwahl bis zum Buchungsstart
 - **Buchung**: Buchungscode und -link nur für Zugesagte, Abhaken „gebucht“ mit dem tatsächlichen Platz
-- **Discord-Bot**: Direktnachrichten und Erinnerungen, Ankündigung mit privatem Thread, Event-Rolle für alle Zugesagten
+- **Discord-Bot**: Direktnachrichten und Erinnerungen, Ankündigung mit privatem Thread, Event-Rolle für alle Zugesagten; `/leute` zeigt Kontaktpersonen und Orga, wie weit ihre Leute sind (wer noch nicht zugesagt oder gebucht hat)
 - **Orga-Bereich**: Teilnehmer, Nachrichten, Protokoll, Import und Export
 
 ## Eigene Erweiterungen
