@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm'
-import { accessFor, mayJoinServer, type Access, type Approval } from '#shared/utils/access'
+import { accessFor, DEFAULT_MIN_DAYS, mayJoinServer, MEMBER_RULES, type Access, type Approval, type MemberRule } from '#shared/utils/access'
 import { resolveBranding } from '#shared/utils/branding'
 
 /**
@@ -10,24 +10,66 @@ import { resolveBranding } from '#shared/utils/branding'
 
 /** Nur in der Entwicklung ohne Bot: diese Discord-IDs gelten als nicht auf dem Server (dev-login ?mitglied=0) */
 export const devNonMembers = new Set<string>()
+/** Nur in der Entwicklung ohne Bot: seit wie vielen Tagen jemand auf dem Server ist (dev-login ?seit=<Tage>), sonst lange */
+export const devMemberDays = new Map<string, number>()
 
-export function memberRoleId() {
-  const id = String(useRuntimeConfig().discord.memberRoleId || '').trim()
-  return /^\d{5,25}$/.test(id) ? id : null
+const roleId = (v: unknown) => typeof v === 'string' && /^\d{5,25}$/.test(v.trim()) ? v.trim() : null
+
+/**
+ * Wer ohne Freigabe durchkommt (settings, Schlüssel „freigabe“, in /orga › Teilnehmer). Nicht gesetzt = wie in der .env:
+ * mit NUXT_DISCORD_MEMBER_ROLE_ID nur die Clan-Rolle, sonst jedes Server-Mitglied.
+ */
+export interface MemberRuleSetting { rule: MemberRule, roleId: string | null, minDays: number }
+
+export function memberRule(): MemberRuleSetting & { source: 'orga' | 'env' } {
+  const row = useDb().select().from(tables.settings).where(eq(tables.settings.key, 'freigabe')).get()
+  const saved = row ? JSON.parse(row.value) as { rule?: unknown, roleId?: unknown, minDays?: unknown } : null
+  if (saved && MEMBER_RULES.includes(saved.rule as MemberRule)) {
+    const days = Number(saved.minDays)
+    const minDays = Number.isInteger(days) && days >= 1 && days <= 365 ? days : DEFAULT_MIN_DAYS
+    return { rule: saved.rule as MemberRule, roleId: roleId(saved.roleId), minDays, source: 'orga' }
+  }
+  const env = roleId(String(useRuntimeConfig().discord.memberRoleId || ''))
+  return { rule: env ? 'rolle' : 'server', roleId: env, minDays: DEFAULT_MIN_DAYS, source: 'env' }
 }
 
-/** Rollen auf unserem Server; null = kein Mitglied, undefined = unbekannt (Discord nicht erreichbar) */
-async function serverRoles(discordId: string, approved: boolean): Promise<string[] | null | undefined> {
+/** null = zurück zur .env */
+export function saveMemberRule(value: MemberRuleSetting | null) {
+  const S = tables.settings
+  if (!value) {
+    useDb().delete(S).where(eq(S.key, 'freigabe')).run()
+    return
+  }
+  const json = JSON.stringify(value)
+  useDb().insert(S).values({ key: 'freigabe', value: json }).onConflictDoUpdate({ target: S.key, set: { value: json } }).run()
+}
+
+/** Clan-Rolle, falls die Regel sie verlangt */
+export function memberRoleId() {
+  const r = memberRule()
+  return r.rule === 'rolle' ? r.roleId : null
+}
+
+type ServerMember = { roles: string[], joinedAt: Date | null }
+const LONG_AGO = new Date(0)
+
+/** Rollen und Beitritt auf unserem Server; null = kein Mitglied, undefined = unbekannt (Discord nicht erreichbar) */
+async function serverMember(discordId: string, approved: boolean): Promise<ServerMember | null | undefined> {
   // Demo-Personen der QA-Umgebung gibt es auf Discord nicht
-  if (isDemoId(discordId)) return demoRoles(discordId, approved, memberRoleId())
+  if (isDemoId(discordId)) {
+    const roles = demoRoles(discordId, approved, memberRoleId())
+    return roles && { roles, joinedAt: LONG_AGO }
+  }
   if (!discordConfigured()) {
     if (!botOptional()) return undefined
-    // lokal ohne Bot: alle sind Mitglied mit Clan-Rolle, außer zum Testen ausgenommen
+    // lokal ohne Bot: alle sind (lange) Mitglied mit Clan-Rolle, außer zum Testen ausgenommen
+    if (devNonMembers.has(discordId)) return null
     const role = memberRoleId()
-    return devNonMembers.has(discordId) ? null : role ? [role] : []
+    const days = devMemberDays.get(discordId)
+    return { roles: role ? [role] : [], joinedAt: days === undefined ? LONG_AGO : new Date(Date.now() - days * 24 * 60 * 60 * 1000) }
   }
   try {
-    return await guildMemberRoles(discordId)
+    return await guildMemberInfo(discordId)
   }
   catch {
     return undefined
@@ -47,8 +89,16 @@ export async function accessOf(discordId: string): Promise<{ access: Access, per
   const ev = currentEvent(db)
   const R = tables.registrations
   const registered = !!(ev && person && db.select({ id: R.id }).from(R).where(and(eq(R.eventId, ev.id), eq(R.personId, person.id))).get())
-  const roles = team || registered || person?.approval === 'wartet' || person?.approval === 'abgelehnt' ? [] : await serverRoles(discordId, person?.approval === 'frei')
-  return { access: accessFor({ team, approval: person?.approval ?? null, registered, roles, memberRoleId: memberRoleId() }), person }
+  const { rule, minDays } = memberRule()
+  const approved = person?.approval === 'frei'
+  // Discord fragen nur, wenn die Antwort etwas ändert: bei Regel „keine“ zählt für Unbekannte nur die Freigabe
+  const skip = team || registered || (!!person && !approved) || (rule === 'keine' && !approved)
+  const member = skip ? { roles: [], joinedAt: null } : await serverMember(discordId, approved)
+  const roles = member === undefined ? undefined : member && member.roles
+  return {
+    access: accessFor({ team, approval: person?.approval ?? null, registered, roles, rule, memberRoleId: memberRoleId(), minDays, memberSince: member?.joinedAt ?? null }),
+    person,
+  }
 }
 
 export async function mayJoin(discordId: string) {
@@ -99,9 +149,14 @@ export async function requestApproval(actor: { discordId: string, name: string, 
       .returning({ id: P.id }).get().id
   }
   logIfEvent(actor, 'freigabe angefragt', nick, `Kontaktperson ${contact.nick}`)
-  const sent = await notifyContact(contact.discordId, personId, nick, actor.username)
+  // Schutz vor Massen-Anfragen: Bei vielen offenen Anfragen bekommt die Kontaktperson keine weiteren DMs, die Orga sieht sie trotzdem
+  const open = db.select({ id: P.id }).from(P).where(and(eq(P.contactId, contactId), eq(P.approval, 'wartet'))).all().length
+  const sent = open <= MAX_OPEN_DMS && await notifyContact(contact.discordId, personId, nick, actor.username)
   return { personId, notified: sent }
 }
+
+/** Höchstens so viele offene Anfragen je Kontaktperson lösen eine DM aus */
+export const MAX_OPEN_DMS = 5
 
 async function notifyContact(contactDiscordId: string, personId: number, nick: string, username: string) {
   if (!discordConfigured()) return false

@@ -2,6 +2,7 @@
  * Nur in der Entwicklung (npm run dev): anmelden, ohne Discord.
  * Ohne Parameter als Projektleiter, mit ?as=<Discord-ID>&name=<Name> als beliebige Person (für Tests);
  * &mitglied=0: gilt ohne Bot als nicht auf unserem Discord-Server (zum Testen der Freigabe).
+ * &seit=<Tage>: ist erst so lange auf dem Server (Regel „dauer“), sonst schon lange.
  * Im Produktions-Build ist diese Route nicht vorhanden (import.meta.dev ist dort false).
  */
 export default defineEventHandler(async (event) => {
@@ -12,6 +13,9 @@ export default defineEventHandler(async (event) => {
   const name = typeof query.name === 'string' && query.name ? query.name : as ? `test-${as}` : 'Entwicklung'
   if (as && query.mitglied === '0') devNonMembers.add(as)
   else if (as) devNonMembers.delete(as)
+  const seit = Number(query.seit)
+  if (as && query.seit !== undefined && Number.isFinite(seit)) devMemberDays.set(as, seit)
+  else if (as) devMemberDays.delete(as)
   const now = new Date()
   const user = { discordId, username: name.toLowerCase().replace(/\s+/g, '_'), displayName: name }
   useDb().insert(tables.users).values({ ...user, createdAt: now, lastLoginAt: now })
