@@ -16,6 +16,7 @@ Was nur für deinen Clan sinnvoll ist, baust du als [Nuxt-Layer](https://nuxt.co
 - Ein Layer bringt eigene Seiten, APIs und Server-Routen mit.
 - Links hängt er über `moduleLinks` in seiner `app/app.config.ts` in die Kopfleiste (`header`) und die Orga-Reiter (`orga`); mit `flag` lässt sich ein Link über einen Schalter in `runtimeConfig.public` ausblenden.
 - Eigene Discord-Slash-Befehle meldet er in einem Nitro-Plugin mit `registerDiscordCommand` an (`server/utils/discordCommands.ts`); sie laufen über den Interactions-Endpunkt des Planners und werden in /orga › Discord bei Discord angemeldet.
+- Prüfungen seiner Einrichtung (fehlende Werte, nicht erreichbare Geräte) hängt er mit `registerSetupCheck` in die Ampel unter /orga › Discord (`server/utils/setupChecks.ts`).
 - Weitere Skript-Quellen für die CSP ergänzt er über `runtimeConfig.csp.scriptSrc`.
 - Daten legt er im allgemeinen Modul-Speicher ab (Tabellen `docs` und `assets` in `server/database/schema.ts`), damit es bei einer Kette von Migrationen bleibt.
 

@@ -1,10 +1,10 @@
-/** Prüfung der Einrichtung (.env und Event-Rolle aus /orga) als Ampel; nennt keine geheimen Werte */
+/** Prüfung der Einrichtung (.env, Event-Rolle aus /orga und die Prüfungen der Module) als Ampel; nennt keine geheimen Werte */
 export default defineEventHandler(async (event) => {
   await requireLeader(event)
   setHeader(event, 'Cache-Control', 'no-store')
   const cfg = useRuntimeConfig()
   return {
-    checks: checkConfig({
+    checks: [...checkConfig({
       appUrl: appUrl(),
       sessionPassword: cfg.session.password,
       leaderDiscordId: cfg.leaderDiscordId,
@@ -16,6 +16,6 @@ export default defineEventHandler(async (event) => {
       eventRoleIdOrga: getDiscordSettings().eventRoleId,
       publicKey: cfg.discord.publicKey,
       dev: import.meta.dev,
-    }),
+    }), ...await moduleSetupChecks()],
   }
 })
