@@ -6,11 +6,14 @@
 export type Approval = 'frei' | 'wartet' | 'abgelehnt'
 
 /**
- * Wer ohne Freigabe durchkommt: „server“ = jedes Mitglied unseres Discord-Servers, „rolle“ = nur mit der Clan-Rolle,
- * „keine“ = niemand, jede neue Person fragt an (wer schon als Person bei uns ist, bleibt frei)
+ * Wer ohne Freigabe durchkommt: „server“ = jedes Mitglied unseres Discord-Servers, „dauer“ = wer seit mindestens
+ * minDays Tagen auf dem Server ist (bremst Leute, die über einen offenen Einladungslink kommen), „rolle“ = nur mit der
+ * Clan-Rolle, „keine“ = niemand, jede neue Person fragt an (wer schon als Person bei uns ist, bleibt frei)
  */
-export type MemberRule = 'server' | 'rolle' | 'keine'
-export const MEMBER_RULES: readonly MemberRule[] = ['server', 'rolle', 'keine']
+export type MemberRule = 'server' | 'dauer' | 'rolle' | 'keine'
+export const MEMBER_RULES: readonly MemberRule[] = ['server', 'dauer', 'rolle', 'keine']
+export const DEFAULT_MIN_DAYS = 14
+const DAY_MS = 24 * 60 * 60 * 1000
 
 export type Access =
   | 'ok'
@@ -36,6 +39,10 @@ export interface AccessInput {
   rule: MemberRule
   /** Clan-Rolle für rule „rolle“; fehlt sie, kommt niemand ohne Freigabe durch */
   memberRoleId: string | null
+  /** für rule „dauer“: Mindestzeit auf dem Server und seit wann die Person dabei ist (null = unbekannt) */
+  minDays?: number
+  memberSince?: Date | null
+  now?: Date
 }
 
 export function accessFor(i: AccessInput): Access {
@@ -48,6 +55,10 @@ export function accessFor(i: AccessInput): Access {
   if (i.roles === null) return approved ? 'not_member' : 'approval_needed'
   if (approved || i.rule === 'server') return 'ok'
   if (i.rule === 'rolle' && i.memberRoleId && i.roles.includes(i.memberRoleId)) return 'ok'
+  if (i.rule === 'dauer' && i.memberSince) {
+    const days = i.minDays ?? DEFAULT_MIN_DAYS
+    if ((i.now ?? new Date()).getTime() - i.memberSince.getTime() >= days * DAY_MS) return 'ok'
+  }
   return 'approval_needed'
 }
 

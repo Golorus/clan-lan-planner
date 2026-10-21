@@ -1,33 +1,39 @@
 <script setup lang="ts">
-import type { MemberRule } from '#shared/utils/access'
+import { DEFAULT_MIN_DAYS, type MemberRule } from '#shared/utils/access'
 
 /**
  * /orga › Teilnehmer: wer ohne Freigabe durchkommt, offene Freigabe-Anfragen entscheiden, Ablehnungen zurücksetzen
  * (server/utils/freigabe.ts)
  */
 interface Request { personId: number, nick: string, discordName: string | null, contactNick: string | null, approval: 'wartet' | 'abgelehnt', requestedAt: string, decidedAt: string | null, decidedBy: string | null }
-interface Rule { rule: MemberRule, roleId: string | null, source: 'orga' | 'env' }
+interface Rule { rule: MemberRule, roleId: string | null, minDays: number, source: 'orga' | 'env' }
 const { data, refresh } = await useFetch<{ requests: Request[], memberRule: Rule }>('/api/orga/freigaben', { key: 'orga-freigaben' })
 const { data: roles } = await useFetch('/api/orga/discord/rollen', { key: 'orga-rollen' })
 const emit = defineEmits<{ changed: [] }>()
 
 const RULES: { value: MemberRule, label: string }[] = [
   { value: 'server', label: 'Jedes Mitglied unseres Discord-Servers' },
+  { value: 'dauer', label: 'Wer schon eine Weile auf unserem Discord-Server ist' },
   { value: 'rolle', label: 'Nur wer die Clan-Rolle hat' },
   { value: 'keine', label: 'Niemand: jede neue Person fragt an' },
 ]
 const rule = ref<MemberRule>('server')
 const roleId = ref('')
+const minDays = ref(DEFAULT_MIN_DAYS)
 watch(() => data.value?.memberRule, r => {
   rule.value = r?.rule ?? 'server'
   roleId.value = r?.roleId ?? ''
+  minDays.value = r?.minDays ?? DEFAULT_MIN_DAYS
 }, { immediate: true })
-const ruleChanged = computed(() => rule.value !== data.value?.memberRule.rule || (rule.value === 'rolle' && roleId.value !== (data.value?.memberRule.roleId ?? '')))
+const daysValid = computed(() => Number.isInteger(minDays.value) && minDays.value >= 1 && minDays.value <= 365)
+const ruleChanged = computed(() => rule.value !== data.value?.memberRule.rule
+  || (rule.value === 'rolle' && roleId.value !== (data.value?.memberRule.roleId ?? ''))
+  || (rule.value === 'dauer' && minDays.value !== data.value?.memberRule.minDays))
 async function saveRule(reset = false) {
   busy.value = true
   error.value = ''
   try {
-    await api('/api/orga/freigaben/regel', { method: 'PUT', body: reset ? { rule: null } : { rule: rule.value, roleId: rule.value === 'rolle' ? roleId.value || null : null } })
+    await api('/api/orga/freigaben/regel', { method: 'PUT', body: reset ? { rule: null } : { rule: rule.value, roleId: rule.value === 'rolle' ? roleId.value || null : null, minDays: minDays.value } })
     await refresh()
     emit('changed')
   }
@@ -67,11 +73,14 @@ async function decide(r: Request, decision: 'frei' | 'abgelehnt' | 'zurück') {
   <section class="card">
     <h2>Freigaben<span v-if="waiting.length" class="muted"> · {{ waiting.length }} offen</span></h2>
     <details class="rule-box" :open="!!error">
-      <summary>Ohne Freigabe rein: <strong>{{ RULES.find(r => r.value === data?.memberRule.rule)?.label }}</strong></summary>
+      <summary>Ohne Freigabe rein: <strong>{{ RULES.find(r => r.value === data?.memberRule.rule)?.label }}<template v-if="data?.memberRule.rule === 'dauer'"> ({{ data.memberRule.minDays }} Tage)</template></strong></summary>
       <p class="muted small">Orga, Kontaktpersonen und wer schon bei uns ist, kommen immer rein. Wer sonst ohne Freigabe durchkommt:</p>
       <div class="rules">
         <label v-for="r in RULES" :key="r.value" class="rule">
           <input v-model="rule" type="radio" name="member-rule" :value="r.value"> {{ r.label }}
+          <span v-if="r.value === 'dauer' && rule === 'dauer'" class="days">
+            seit mindestens <input v-model.number="minDays" type="number" min="1" max="365" step="1"> Tagen
+          </span>
           <select v-if="r.value === 'rolle' && rule === 'rolle'" v-model="roleId" class="role">
             <option value="">Rolle wählen …</option>
             <option v-for="o in roles?.roles" :key="o.id" :value="o.id">{{ o.name }}</option>
@@ -79,7 +88,7 @@ async function decide(r: Request, decision: 'frei' | 'abgelehnt' | 'zurück') {
         </label>
       </div>
       <div class="row">
-        <button class="btn small" type="button" :disabled="busy || !ruleChanged || (rule === 'rolle' && !roleId)" @click="saveRule()">Speichern</button>
+        <button class="btn small" type="button" :disabled="busy || !ruleChanged || (rule === 'rolle' && !roleId) || (rule === 'dauer' && !daysValid)" @click="saveRule()">Speichern</button>
         <span class="muted small">
           <template v-if="data?.memberRule.source === 'orga'">Hier gesetzt. <a href="#" @click.prevent="saveRule(true)">Zurück zur .env</a></template>
           <template v-else>Aus der .env (NUXT_DISCORD_MEMBER_ROLE_ID).</template>
@@ -88,6 +97,9 @@ async function decide(r: Request, decision: 'frei' | 'abgelehnt' | 'zurück') {
       <p v-if="rule === 'server'" class="muted small">
         Passt, wenn auf euren Discord nur kommt, wen ihr kennt: Ein offener Einladungslink lässt sonst jeden durch.
         Über den Planner tritt niemand vor der Freigabe dem Server bei.
+      </p>
+      <p v-if="rule === 'dauer'" class="muted small">
+        Wer gerade erst über einen Einladungslink gekommen ist, fragt eine Freigabe an. Wer länger dabei ist, merkt nichts.
       </p>
     </details>
     <p v-if="error" class="notice err">{{ error }}</p>
@@ -127,5 +139,6 @@ async function decide(r: Request, decision: 'frei' | 'abgelehnt' | 'zurück') {
 .rules { display: grid; gap: 4px; margin: 6px 0 10px; }
 .rule { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .role { max-width: 100%; }
+.days input { width: 4.5em; }
 .acts { gap: 6px; flex-wrap: nowrap; justify-content: flex-end; }
 </style>

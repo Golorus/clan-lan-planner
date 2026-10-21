@@ -201,22 +201,27 @@ function toMember(m: RawMember): GuildMember {
 
 /** Mitgliedschaften kurz merken: Orga-Seiten fragen bei jeder Anfrage nach der Rolle */
 const MEMBER_TTL_MS = 60_000
-const memberCache = new Map<string, { roles: string[] | null, at: number }>()
+const memberCache = new Map<string, { member: { roles: string[], joinedAt: Date | null } | null, at: number }>()
 
-/** Rollen-IDs eines Mitglieds unseres Servers; null = kein Mitglied. Wirft, wenn Discord nicht antwortet. */
-export async function guildMemberRoles(discordUserId: string) {
+/** Rollen und Beitrittsdatum auf unserem Server; null = kein Mitglied. Wirft, wenn Discord nicht antwortet. */
+export async function guildMemberInfo(discordUserId: string) {
   const hit = memberCache.get(discordUserId)
-  if (hit && Date.now() - hit.at < MEMBER_TTL_MS) return hit.roles
-  let roles: string[] | null
+  if (hit && Date.now() - hit.at < MEMBER_TTL_MS) return hit.member
+  let member: { roles: string[], joinedAt: Date | null } | null
   try {
-    roles = (await discordApi<RawMember & { roles: string[] }>('GET', `/guilds/${guildId()}/members/${discordUserId}`)).roles
+    const raw = await discordApi<RawMember & { roles: string[], joined_at?: string | null }>('GET', `/guilds/${guildId()}/members/${discordUserId}`)
+    member = { roles: raw.roles, joinedAt: raw.joined_at ? new Date(raw.joined_at) : null }
   }
   catch (e) {
     if (!(e instanceof DiscordError && e.status === 404)) throw e
-    roles = null
+    member = null
   }
-  memberCache.set(discordUserId, { roles, at: Date.now() })
-  return roles
+  memberCache.set(discordUserId, { member, at: Date.now() })
+  return member
+}
+
+export async function guildMemberRoles(discordUserId: string) {
+  return (await guildMemberInfo(discordUserId))?.roles ?? null
 }
 
 /** Ist jemand auf unserem Discord-Server? Wirft, wenn Discord nicht antwortet. */

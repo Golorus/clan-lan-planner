@@ -167,7 +167,7 @@ In `.env` ausfüllen:
 | `NUXT_DISCORD_BOT_TOKEN` | Bot-Token aus Schritt 3 |
 | `NUXT_DISCORD_GUILD_ID` | Server-ID |
 | `NUXT_DISCORD_ORGA_ROLE_ID` | ID eurer Orga-Rolle: wer diese Rolle auf eurem Server hat, kommt in `/orga` |
-| `NUXT_DISCORD_MEMBER_ROLE_ID` | ID eurer Clan-Rolle: wer sie hat, darf ohne Freigabe mitmachen. Alle anderen fragen im Planner eine Freigabe an, die ihre Kontaktperson per Discord-Knopf oder die Orga unter *Teilnehmer* erteilt. Leer = jedes Mitglied eures Servers. Unbekannte holt der Planner erst nach der Freigabe auf euren Server. In /orga › Teilnehmer › Freigaben änderbar (jedes Server-Mitglied, nur Clan-Rolle oder niemand ohne Freigabe); das gilt dann statt der .env |
+| `NUXT_DISCORD_MEMBER_ROLE_ID` | ID eurer Clan-Rolle: wer sie hat, darf ohne Freigabe mitmachen. Alle anderen fragen im Planner eine Freigabe an, die ihre Kontaktperson per Discord-Knopf oder die Orga unter *Teilnehmer* erteilt. Leer = jedes Mitglied eures Servers. Unbekannte holt der Planner erst nach der Freigabe auf euren Server. In /orga › Teilnehmer › Freigaben änderbar (jedes Server-Mitglied, Server-Mitglied seit mindestens X Tagen, nur Clan-Rolle oder niemand ohne Freigabe); das gilt dann statt der .env |
 | `NUXT_DISCORD_EVENT_ROLE_ID` | ID der Event-Rolle, die der Bot den Zugesagten gibt. Nie dieselbe ID wie die Orga-Rolle, sonst gilt keine von beiden. Lässt sich auch in `/orga` umstellen |
 | `NUXT_PUBLIC_APP_NAME`, `NUXT_PUBLIC_EVENT_ROLE_NAME` | optional: Name der App und wie die Event-Rolle in den Texten heißt (leer = „Clan LAN Planner“ und „Event-Rolle“) |
 | `NUXT_DISCORD_PUBLIC_KEY` | Public Key aus Schritt 3 (*General Information*), für die Knöpfe in den Nachrichten |

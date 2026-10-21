@@ -17,6 +17,16 @@ describe('Zugang zum Planner', () => {
     expect(accessFor({ ...rolle, roles: ['222'] })).toBe('approval_needed')
     expect(accessFor({ ...rolle, memberRoleId: null, roles: [CLAN] })).toBe('approval_needed')
   })
+  it('Regel „dauer“: nur wer lange genug auf dem Server ist', () => {
+    const now = new Date('2026-10-21T12:00:00Z')
+    const daysAgo = (d: number) => new Date(now.getTime() - d * 24 * 60 * 60 * 1000)
+    const dauer = { ...base, rule: 'dauer' as const, minDays: 14, now }
+    expect(accessFor({ ...dauer, memberSince: daysAgo(14) })).toBe('ok')
+    expect(accessFor({ ...dauer, memberSince: daysAgo(13) })).toBe('approval_needed')
+    expect(accessFor({ ...dauer, memberSince: null })).toBe('approval_needed')
+    expect(accessFor({ ...dauer, memberSince: daysAgo(1), approval: 'frei' })).toBe('ok')
+    expect(accessFor({ ...dauer, roles: null, memberSince: daysAgo(100) })).toBe('approval_needed')
+  })
   it('Regel „keine“: auch Server-Mitglieder mit Rolle fragen an, Freigegebene bleiben drin', () => {
     const keine = { ...base, rule: 'keine' as const, memberRoleId: CLAN }
     expect(accessFor({ ...keine, roles: [CLAN] })).toBe('approval_needed')

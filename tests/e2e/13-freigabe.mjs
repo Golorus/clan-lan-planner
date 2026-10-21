@@ -1,8 +1,8 @@
 import { BASE, check, client, expectStatus, ID, interaction, SESSION_COOKIE } from './lib.mjs'
 
 /** Unbekannte (ohne Server/Clan-Rolle) müssen eine Freigabe anfragen; Kontaktperson per Knopf oder Orga entscheidet */
-async function stranger(id, name, member) {
-  const res = await fetch(`${BASE}/auth/dev-login?as=${id}&name=${encodeURIComponent(name)}&mitglied=${member ? 1 : 0}`, { redirect: 'manual' })
+async function stranger(id, name, member, days) {
+  const res = await fetch(`${BASE}/auth/dev-login?as=${id}&name=${encodeURIComponent(name)}&mitglied=${member ? 1 : 0}${days === undefined ? '' : `&seit=${days}`}`, { redirect: 'manual' })
   const cookie = (res.headers.getSetCookie?.() ?? []).map(c => c.split(';')[0]).find(c => c.startsWith(SESSION_COOKIE + '='))
   return client(cookie, name)
 }
@@ -54,6 +54,11 @@ export default async function (ctx) {
   check(code(await mitglied.get('/api/sitzplan')) === 'approval_needed', 'Regel keine: Server-Mitglied muss anfragen')
   await expectStatus(member.get('/api/sitzplan'), 200, 'Regel keine: schon Freigegebene bleiben drin')
   await expectStatus(leader.put('/api/orga/freigaben/regel', { rule: 'rolle', roleId: null }), 400, 'Regel rolle ohne Rolle abgelehnt')
+  check((await regel({ rule: 'dauer', minDays: 14 })).minDays === 14, 'Regel dauer mit 14 Tagen gespeichert')
+  const frisch = await stranger('410000000000005004', 'Frisch', true, 2)
+  check(code(await frisch.get('/api/sitzplan')) === 'approval_needed', 'Regel dauer: seit 2 Tagen auf dem Server muss anfragen')
+  await expectStatus((await stranger('410000000000005005', 'Alt', true, 30)).get('/api/sitzplan'), 200, 'Regel dauer: seit 30 Tagen kommt durch')
+  await expectStatus(leader.put('/api/orga/freigaben/regel', { rule: 'dauer', minDays: 0 }), 400, 'Regel dauer mit 0 Tagen abgelehnt')
   await expectStatus(mitglied.put('/api/orga/freigaben/regel', { rule: 'server' }), 403, 'Teilnehmer: Regel nicht änderbar')
   check((await regel({ rule: null })).rule === 'server', 'zurück zur .env')
   await expectStatus(mitglied.get('/api/sitzplan'), 200, 'wieder durch')
