@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm'
-import { accessFor, mayJoinServer, type Access, type Approval } from '#shared/utils/access'
+import { accessFor, mayJoinServer, MEMBER_RULES, type Access, type Approval, type MemberRule } from '#shared/utils/access'
 import { resolveBranding } from '#shared/utils/branding'
 
 /**
@@ -11,9 +11,35 @@ import { resolveBranding } from '#shared/utils/branding'
 /** Nur in der Entwicklung ohne Bot: diese Discord-IDs gelten als nicht auf dem Server (dev-login ?mitglied=0) */
 export const devNonMembers = new Set<string>()
 
+const roleId = (v: unknown) => typeof v === 'string' && /^\d{5,25}$/.test(v.trim()) ? v.trim() : null
+
+/**
+ * Wer ohne Freigabe durchkommt (settings, Schlüssel „freigabe“, in /orga › Teilnehmer). Nicht gesetzt = wie in der .env:
+ * mit NUXT_DISCORD_MEMBER_ROLE_ID nur die Clan-Rolle, sonst jedes Server-Mitglied.
+ */
+export function memberRule(): { rule: MemberRule, roleId: string | null, source: 'orga' | 'env' } {
+  const row = useDb().select().from(tables.settings).where(eq(tables.settings.key, 'freigabe')).get()
+  const saved = row ? JSON.parse(row.value) as { rule?: unknown, roleId?: unknown } : null
+  if (saved && MEMBER_RULES.includes(saved.rule as MemberRule)) return { rule: saved.rule as MemberRule, roleId: roleId(saved.roleId), source: 'orga' }
+  const env = roleId(String(useRuntimeConfig().discord.memberRoleId || ''))
+  return { rule: env ? 'rolle' : 'server', roleId: env, source: 'env' }
+}
+
+/** null = zurück zur .env */
+export function saveMemberRule(value: { rule: MemberRule, roleId: string | null } | null) {
+  const S = tables.settings
+  if (!value) {
+    useDb().delete(S).where(eq(S.key, 'freigabe')).run()
+    return
+  }
+  const json = JSON.stringify(value)
+  useDb().insert(S).values({ key: 'freigabe', value: json }).onConflictDoUpdate({ target: S.key, set: { value: json } }).run()
+}
+
+/** Clan-Rolle, falls die Regel sie verlangt */
 export function memberRoleId() {
-  const id = String(useRuntimeConfig().discord.memberRoleId || '').trim()
-  return /^\d{5,25}$/.test(id) ? id : null
+  const r = memberRule()
+  return r.rule === 'rolle' ? r.roleId : null
 }
 
 /** Rollen auf unserem Server; null = kein Mitglied, undefined = unbekannt (Discord nicht erreichbar) */
@@ -47,8 +73,12 @@ export async function accessOf(discordId: string): Promise<{ access: Access, per
   const ev = currentEvent(db)
   const R = tables.registrations
   const registered = !!(ev && person && db.select({ id: R.id }).from(R).where(and(eq(R.eventId, ev.id), eq(R.personId, person.id))).get())
-  const roles = team || registered || person?.approval === 'wartet' || person?.approval === 'abgelehnt' ? [] : await serverRoles(discordId, person?.approval === 'frei')
-  return { access: accessFor({ team, approval: person?.approval ?? null, registered, roles, memberRoleId: memberRoleId() }), person }
+  const { rule } = memberRule()
+  const approved = person?.approval === 'frei'
+  // Discord fragen nur, wenn die Antwort etwas ändert: bei Regel „keine“ zählt für Unbekannte nur die Freigabe
+  const skip = team || registered || (!!person && !approved) || (rule === 'keine' && !approved)
+  const roles = skip ? [] : await serverRoles(discordId, approved)
+  return { access: accessFor({ team, approval: person?.approval ?? null, registered, roles, rule, memberRoleId: memberRoleId() }), person }
 }
 
 export async function mayJoin(discordId: string) {

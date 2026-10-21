@@ -44,4 +44,17 @@ export default async function (ctx) {
   await expectStatus(leader.post(`/api/orga/freigaben/${r2.personId}`, { decision: 'zurück' }), 200, 'Orga setzt die Ablehnung zurück')
   check(code(await zweit.get('/api/sitzplan')) === 'approval_needed', 'zurückgesetzt: kann neu anfragen')
   await expectStatus(zweit.post(`/api/orga/freigaben/${r2.personId}`, { decision: 'frei' }), 403, 'Teilnehmer: Orga-Freigabe nicht erlaubt')
+
+  // Regel, wer ohne Freigabe durchkommt (/orga › Teilnehmer)
+  const regel = async body => (await expectStatus(leader.put('/api/orga/freigaben/regel', body), 200, `Regel ${body.rule ?? 'aus der .env'}`)).data.memberRule
+  check((await leader.get('/api/orga/freigaben')).data.memberRule.rule === 'server', 'ohne Einstellung: jedes Server-Mitglied (wie bisher)')
+  const mitglied = await stranger('410000000000005003', 'Mitglied', true)
+  await expectStatus(mitglied.get('/api/sitzplan'), 200, 'Regel server: Mitglied ohne Person kommt durch')
+  check((await regel({ rule: 'keine' })).source === 'orga', 'Regel keine gespeichert')
+  check(code(await mitglied.get('/api/sitzplan')) === 'approval_needed', 'Regel keine: Server-Mitglied muss anfragen')
+  await expectStatus(member.get('/api/sitzplan'), 200, 'Regel keine: schon Freigegebene bleiben drin')
+  await expectStatus(leader.put('/api/orga/freigaben/regel', { rule: 'rolle', roleId: null }), 400, 'Regel rolle ohne Rolle abgelehnt')
+  await expectStatus(mitglied.put('/api/orga/freigaben/regel', { rule: 'server' }), 403, 'Teilnehmer: Regel nicht änderbar')
+  check((await regel({ rule: null })).rule === 'server', 'zurück zur .env')
+  await expectStatus(mitglied.get('/api/sitzplan'), 200, 'wieder durch')
 }

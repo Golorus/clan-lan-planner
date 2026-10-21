@@ -1,8 +1,43 @@
 <script setup lang="ts">
-/** /orga › Teilnehmer: offene Freigabe-Anfragen entscheiden, Ablehnungen zurücksetzen (server/utils/freigabe.ts) */
+import type { MemberRule } from '#shared/utils/access'
+
+/**
+ * /orga › Teilnehmer: wer ohne Freigabe durchkommt, offene Freigabe-Anfragen entscheiden, Ablehnungen zurücksetzen
+ * (server/utils/freigabe.ts)
+ */
 interface Request { personId: number, nick: string, discordName: string | null, contactNick: string | null, approval: 'wartet' | 'abgelehnt', requestedAt: string, decidedAt: string | null, decidedBy: string | null }
-const { data, refresh } = await useFetch<{ requests: Request[] }>('/api/orga/freigaben', { key: 'orga-freigaben' })
+interface Rule { rule: MemberRule, roleId: string | null, source: 'orga' | 'env' }
+const { data, refresh } = await useFetch<{ requests: Request[], memberRule: Rule }>('/api/orga/freigaben', { key: 'orga-freigaben' })
+const { data: roles } = await useFetch('/api/orga/discord/rollen', { key: 'orga-rollen' })
 const emit = defineEmits<{ changed: [] }>()
+
+const RULES: { value: MemberRule, label: string }[] = [
+  { value: 'server', label: 'Jedes Mitglied unseres Discord-Servers' },
+  { value: 'rolle', label: 'Nur wer die Clan-Rolle hat' },
+  { value: 'keine', label: 'Niemand: jede neue Person fragt an' },
+]
+const rule = ref<MemberRule>('server')
+const roleId = ref('')
+watch(() => data.value?.memberRule, r => {
+  rule.value = r?.rule ?? 'server'
+  roleId.value = r?.roleId ?? ''
+}, { immediate: true })
+const ruleChanged = computed(() => rule.value !== data.value?.memberRule.rule || (rule.value === 'rolle' && roleId.value !== (data.value?.memberRule.roleId ?? '')))
+async function saveRule(reset = false) {
+  busy.value = true
+  error.value = ''
+  try {
+    await api('/api/orga/freigaben/regel', { method: 'PUT', body: reset ? { rule: null } : { rule: rule.value, roleId: rule.value === 'rolle' ? roleId.value || null : null } })
+    await refresh()
+    emit('changed')
+  }
+  catch (e) {
+    error.value = apiError(e)
+  }
+  finally {
+    busy.value = false
+  }
+}
 
 const waiting = computed(() => (data.value?.requests ?? []).filter(r => r.approval === 'wartet'))
 const rejected = computed(() => (data.value?.requests ?? []).filter(r => r.approval === 'abgelehnt'))
@@ -29,11 +64,36 @@ async function decide(r: Request, decision: 'frei' | 'abgelehnt' | 'zurück') {
 </script>
 
 <template>
-  <section v-if="waiting.length || rejected.length" class="card">
+  <section class="card">
     <h2>Freigaben<span v-if="waiting.length" class="muted"> · {{ waiting.length }} offen</span></h2>
-    <p class="muted small">Neue Leute ohne Clan-Rolle fragen hier an. Ihre Kontaktperson kann per Discord-Knopf entscheiden, du hier.</p>
+    <details class="rule-box" :open="!!error">
+      <summary>Ohne Freigabe rein: <strong>{{ RULES.find(r => r.value === data?.memberRule.rule)?.label }}</strong></summary>
+      <p class="muted small">Orga, Kontaktpersonen und wer schon bei uns ist, kommen immer rein. Wer sonst ohne Freigabe durchkommt:</p>
+      <div class="rules">
+        <label v-for="r in RULES" :key="r.value" class="rule">
+          <input v-model="rule" type="radio" name="member-rule" :value="r.value"> {{ r.label }}
+          <select v-if="r.value === 'rolle' && rule === 'rolle'" v-model="roleId" class="role">
+            <option value="">Rolle wählen …</option>
+            <option v-for="o in roles?.roles" :key="o.id" :value="o.id">{{ o.name }}</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <button class="btn small" type="button" :disabled="busy || !ruleChanged || (rule === 'rolle' && !roleId)" @click="saveRule()">Speichern</button>
+        <span class="muted small">
+          <template v-if="data?.memberRule.source === 'orga'">Hier gesetzt. <a href="#" @click.prevent="saveRule(true)">Zurück zur .env</a></template>
+          <template v-else>Aus der .env (NUXT_DISCORD_MEMBER_ROLE_ID).</template>
+        </span>
+      </div>
+      <p v-if="rule === 'server'" class="muted small">
+        Passt, wenn auf euren Discord nur kommt, wen ihr kennt: Ein offener Einladungslink lässt sonst jeden durch.
+        Über den Planner tritt niemand vor der Freigabe dem Server bei.
+      </p>
+    </details>
     <p v-if="error" class="notice err">{{ error }}</p>
-    <div class="tbl-wrap">
+    <p v-if="!waiting.length && !rejected.length" class="muted small">Keine offenen Anfragen.</p>
+    <p v-else class="muted small">Die Kontaktperson kann per Discord-Knopf entscheiden, du hier.</p>
+    <div v-if="waiting.length || rejected.length" class="tbl-wrap">
       <table class="tbl">
         <thead><tr><th>Nick</th><th>Kontaktperson</th><th>Stand</th><th /></tr></thead>
         <tbody>
@@ -62,5 +122,10 @@ async function decide(r: Request, decision: 'frei' | 'abgelehnt' | 'zurück') {
 </template>
 
 <style scoped>
+.rule-box { margin-bottom: 10px; }
+.rule-box summary { cursor: pointer; }
+.rules { display: grid; gap: 4px; margin: 6px 0 10px; }
+.rule { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.role { max-width: 100%; }
 .acts { gap: 6px; flex-wrap: nowrap; justify-content: flex-end; }
 </style>

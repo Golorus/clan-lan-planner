@@ -1,9 +1,16 @@
 /**
  * Wer darf in den Planner? Orga und Kontaktpersonen immer; wer sich selbst gemeldet hat, erst nach Freigabe;
- * sonst wer auf unserem Discord-Server ist und, falls eingestellt, die Clan-Rolle hat (NUXT_DISCORD_MEMBER_ROLE_ID).
+ * sonst je nach Regel (MemberRule) jedes Mitglied unseres Discord-Servers, nur wer die Clan-Rolle hat, oder niemand.
  * Server: server/utils/freigabe.ts
  */
 export type Approval = 'frei' | 'wartet' | 'abgelehnt'
+
+/**
+ * Wer ohne Freigabe durchkommt: „server“ = jedes Mitglied unseres Discord-Servers, „rolle“ = nur mit der Clan-Rolle,
+ * „keine“ = niemand, jede neue Person fragt an (wer schon als Person bei uns ist, bleibt frei)
+ */
+export type MemberRule = 'server' | 'rolle' | 'keine'
+export const MEMBER_RULES: readonly MemberRule[] = ['server', 'rolle', 'keine']
 
 export type Access =
   | 'ok'
@@ -25,7 +32,9 @@ export interface AccessInput {
   registered: boolean
   /** Rollen auf unserem Server; null = kein Mitglied, undefined = unbekannt */
   roles: string[] | null | undefined
-  /** Clan-Rolle; leer = jedes Mitglied des Servers gilt als bekannt */
+  /** wer ohne Freigabe durchkommt */
+  rule: MemberRule
+  /** Clan-Rolle für rule „rolle“; fehlt sie, kommt niemand ohne Freigabe durch */
   memberRoleId: string | null
 }
 
@@ -37,7 +46,8 @@ export function accessFor(i: AccessInput): Access {
   if (i.roles === undefined) return 'unknown'
   const approved = i.approval === 'frei'
   if (i.roles === null) return approved ? 'not_member' : 'approval_needed'
-  if (approved || !i.memberRoleId || i.roles.includes(i.memberRoleId)) return 'ok'
+  if (approved || i.rule === 'server') return 'ok'
+  if (i.rule === 'rolle' && i.memberRoleId && i.roles.includes(i.memberRoleId)) return 'ok'
   return 'approval_needed'
 }
 
