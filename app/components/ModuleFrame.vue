@@ -4,7 +4,7 @@
  * Kopfleiste und Orga-Reiter bleiben die des Planners. Die Seite muss in runtimeConfig.csp.frameSelf stehen
  * (shared/utils/moduleFrames.ts). Sie liegt auf derselben Seite, deshalb misst der Rahmen sie selbst und wächst mit.
  */
-const props = withDefaults(defineProps<{ src: string, title: string, minHeight?: number }>(), { minHeight: 200 })
+const props = withDefaults(defineProps<{ src: string, title: string, minHeight?: number }>(), { minHeight: 40 })
 
 const frame = ref<HTMLIFrameElement>()
 /** bis die Seite gemessen ist: so hoch wie das Fenster */

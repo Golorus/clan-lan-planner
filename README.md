@@ -19,7 +19,7 @@ Was nur für deinen Clan sinnvoll ist, baust du als [Nuxt-Layer](https://nuxt.co
 - Prüfungen seiner Einrichtung (fehlende Werte, nicht erreichbare Geräte) hängt er mit `registerSetupCheck` in die Ampel unter /orga › Discord (`server/utils/setupChecks.ts`).
 - Weitere Skript-Quellen für die CSP ergänzt er über `runtimeConfig.csp.scriptSrc`.
 - Eine eigene HTML-Anwendung, die keine Vue-Seite ist, zeigt er in einer Vue-Seite mit `<ModuleFrame src="…" title="…" />` unter Kopfleiste und Orga-Reitern des Planners. Die eingerahmte Seite nennt er in `runtimeConfig.csp.frameSelf` (nur diese Pfade dürfen in einen Rahmen, und nur im Planner selbst; ein Eintrag mit `/` am Ende gilt für alles darunter). Der Rahmen wächst mit ihrer Höhe. Links darin, die die ganze Seite wechseln sollen, brauchen `target="_top"`.
-- Inhalte in Seiten anderer Module hängt er über `moduleEmbeds.<bereich>` in seiner `app/app.config.ts` ein (`src`, `title`, `hint`, `flag`); die Seite des anderen Moduls zeigt sie mit `<ModuleEmbeds area="<bereich>" />` zum Aufklappen, ohne das Modul zu kennen.
+- Inhalte in Seiten anderer Module hängt er über `moduleEmbeds.<bereich>` in seiner `app/app.config.ts` ein (`src`, `title`, `hint`, `flag`, `open` für gleich aufgeklappt); die Seite des anderen Moduls zeigt sie mit `<ModuleEmbeds area="<bereich>" />` zum Aufklappen, ohne das Modul zu kennen.
 - Daten legt er im allgemeinen Modul-Speicher ab (Tabellen `docs` und `assets` in `server/database/schema.ts`), damit es bei einer Kette von Migrationen bleibt.
 
 Alternativ bindest du den Planner in deinem eigenen Repository per `extends: ['github:Golorus/clan-lan-planner#<tag>']` ein und legst dort nur deine Layer ab. Dabei gilt:
