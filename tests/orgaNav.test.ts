@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { visibleLinks } from '../shared/utils/moduleLinks'
-import { ORGA_GROUPS, activeOrgaGroup } from '../shared/utils/orgaNav'
+import { ORGA_GROUPS, activeModuleLink, activeOrgaGroup } from '../shared/utils/orgaNav'
 
 describe('Orga-Reiter', () => {
   it('findet die Gruppe einer Seite, auch mit Schrägstrich am Ende', () => {
@@ -27,5 +27,13 @@ describe('Links der Module', () => {
   it('lässt Links weg, deren Schalter aus ist', () => {
     expect(visibleLinks(links, { meinModul: false }).map(l => l.to)).toEqual(['/x'])
     expect(visibleLinks(undefined, {})).toEqual([])
+  })
+})
+
+describe('Seite eines Moduls in den Orga-Reitern', () => {
+  const links = [{ to: '/orga/modul', label: 'Modul' }]
+  it('erkennt die Seite, auch mit Schrägstrich am Ende', () => {
+    expect(activeModuleLink('/orga/modul/', links)?.label).toBe('Modul')
+    expect(activeModuleLink('/orga/sitzplan', links)).toBeUndefined()
   })
 })

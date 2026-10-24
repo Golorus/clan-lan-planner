@@ -39,8 +39,11 @@ export default defineNuxtConfig({
      * Per .env als Komma-Liste: NUXT_SETUP_SCOPE=bot,public-key
      */
     setupScope: [] as string[],
-    /** zusätzliche Skript-Quellen für die CSP (server/middleware/security-headers.ts), von Modulen ergänzt */
-    csp: { scriptSrc: [] as string[] },
+    /**
+     * CSP (server/middleware/security-headers.ts), von Modulen ergänzt: zusätzliche Skript-Quellen und Pfade,
+     * die der Planner selbst in einen Rahmen setzen darf (ModuleFrame.vue; „/x/“ am Ende = alles darunter)
+     */
+    csp: { scriptSrc: [] as string[], frameSelf: [] as string[] },
     discord: {
       botToken: '',
       guildId: '',
