@@ -1,23 +1,25 @@
 <script setup lang="ts">
-import { ORGA_GROUPS, activeOrgaGroup } from '#shared/utils/orgaNav'
+import { ORGA_GROUPS, activeModuleLink, activeOrgaGroup } from '#shared/utils/orgaNav'
 
-defineProps<{ title: string }>()
+/** ohne title keine Überschrift, z. B. wenn die Seite eines Moduls ihre eigene mitbringt */
+defineProps<{ title?: string }>()
 
 const route = useRoute()
-const active = computed(() => activeOrgaGroup(route.path))
-/** Seiten der Module: eigene Seiten vom Server, rechts in der Reiterleiste */
+/** Seiten der Module, rechts in der Reiterleiste */
 const moduleLinks = useModuleLinks().orga
+const activeModule = computed(() => activeModuleLink(route.path, moduleLinks))
+const active = computed(() => activeModule.value ? undefined : activeOrgaGroup(route.path))
 </script>
 
 <template>
   <nav class="orga-nav" aria-label="Orga">
     <NuxtLink v-for="g in ORGA_GROUPS" :key="g.label" :to="g.pages[0]?.to" :class="{ active: g === active }">{{ g.label }}</NuxtLink>
-    <a v-for="(l, i) in moduleLinks" :key="l.to" :class="{ ext: i === 0 }" :href="l.to">{{ l.label }}</a>
+    <a v-for="(l, i) in moduleLinks" :key="l.to" :class="{ ext: i === 0, active: l === activeModule }" :href="l.to" :aria-current="l === activeModule ? 'page' : undefined">{{ l.label }}</a>
   </nav>
-  <nav v-if="active.pages.length > 1" class="orga-sub" :aria-label="active.label">
+  <nav v-if="active && active.pages.length > 1" class="orga-sub" :aria-label="active.label">
     <NuxtLink v-for="p in active.pages" :key="p.to" :to="p.to" exact-active-class="active">{{ p.label }}</NuxtLink>
   </nav>
-  <h1>{{ title }}</h1>
+  <h1 v-if="title">{{ title }}</h1>
 </template>
 
 <style scoped>

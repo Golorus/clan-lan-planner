@@ -1,7 +1,5 @@
 /**
- * Reiter der Orga in Gruppen. Eine Liste für OrgaNav.vue und für Module mit eigenen Server-Seiten
- * (layers/stand-planer/server/utils/planerPage.ts), damit alle dieselben Reiter zeigen.
- * Seiten der Module selbst kommen über moduleLinks (shared/utils/moduleLinks.ts).
+ * Reiter der Orga in Gruppen (OrgaNav.vue). Seiten der Module kommen über moduleLinks (shared/utils/moduleLinks.ts).
  */
 export interface OrgaPage { to: string, label: string }
 export interface OrgaGroup { label: string, pages: OrgaPage[] }
@@ -30,4 +28,10 @@ export const ORGA_GROUPS: OrgaGroup[] = [
 export function activeOrgaGroup(path: string) {
   const p = path.replace(/\/$/, '') || '/'
   return ORGA_GROUPS.find(g => g.pages.some(page => page.to === p)) ?? ORGA_GROUPS[0]!
+}
+
+/** die Seite eines Moduls, auf der man gerade ist (dann ist keine Gruppe aktiv) */
+export function activeModuleLink<T extends { to: string }>(path: string, links: readonly T[]) {
+  const p = path.replace(/\/$/, '') || '/'
+  return links.find(l => l.to === p)
 }

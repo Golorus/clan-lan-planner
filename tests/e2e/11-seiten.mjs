@@ -1,4 +1,4 @@
-import { check, expectStatus } from './lib.mjs'
+import { BASE, check, expectStatus } from './lib.mjs'
 
 /** Jede Orga-Seite wird für die Orga ausgeliefert (mit Navigation und Überschrift), für andere nicht */
 const PAGES = [
@@ -40,6 +40,11 @@ export default async function (ctx) {
   for (const label of ['offen', 'eingeladen', 'zugesagt', 'platziert', 'gebucht', 'Warteliste', 'abgesagt', 'nicht im Event', 'Erreicht']) {
     check(tn.text.includes(label), `Teilnehmer-Liste kennt „${label}“`)
   }
+  // Seiten des Planners dürfen nie in einen Rahmen (nur Pfade, die Module in runtimeConfig.csp.frameSelf nennen)
+  const framed = await fetch(BASE + '/orga')
+  check(framed.headers.get('x-frame-options') === 'DENY', `/orga: X-Frame-Options ${framed.headers.get('x-frame-options')}`)
+  const helper = await fetch(BASE + '/module-frame.js')
+  check(helper.status === 200 && (await helper.text()).includes('moduleFrameHeight'), '/module-frame.js für eingerahmte Seiten der Module')
   for (const path of ['/orga', '/orga/teilnehmer', '/orga/discord']) {
     await expectStatus(rot.get(path), 403, `Kontaktperson öffnet ${path}`)
   }
