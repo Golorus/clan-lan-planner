@@ -1,21 +1,21 @@
 <script setup lang="ts">
 /**
  * Die Seiten, die Module in einen Bereich hängen (app.config.ts: moduleEmbeds.<bereich>), je zum Aufklappen.
- * Ein Rahmen lädt erst beim ersten Aufklappen. So zeigt eine Seite Inhalte anderer Module, ohne sie zu kennen.
+ * Ein Rahmen lädt erst beim ersten Aufklappen, mit open gleich. So zeigt eine Seite Inhalte anderer Module, ohne sie zu kennen.
  */
 import { visibleEmbeds, type ModuleEmbed } from '#shared/utils/moduleFrames'
 
 const props = defineProps<{ area: string }>()
 const { moduleEmbeds } = useAppConfig() as { moduleEmbeds?: Record<string, ModuleEmbed[]> }
 const embeds = computed(() => visibleEmbeds(moduleEmbeds?.[props.area], useRuntimeConfig().public as Record<string, unknown>))
-const opened = ref(new Set<string>())
+const opened = ref(new Set(embeds.value.filter(e => e.open).map(e => e.src)))
 function toggle(e: Event, src: string) {
   if ((e.target as HTMLDetailsElement).open) opened.value = new Set([...opened.value, src])
 }
 </script>
 
 <template>
-  <details v-for="e in embeds" :key="e.src" class="card module-embed" @toggle="toggle($event, e.src)">
+  <details v-for="e in embeds" :key="e.src" class="card module-embed" :open="e.open" @toggle="toggle($event, e.src)">
     <summary><h2>{{ e.title }}</h2></summary>
     <p v-if="e.hint" class="muted small">{{ e.hint }}</p>
     <ModuleFrame v-if="opened.has(e.src)" :src="e.src" :title="e.title" />

@@ -13,6 +13,8 @@ export interface ModuleEmbed {
   hint?: string
   /** Schalter in runtimeConfig.public; nur bei false fehlt es (wie bei moduleLinks) */
   flag?: string
+  /** gleich aufgeklappt und geladen, statt erst beim Aufklappen */
+  open?: boolean
 }
 
 /** darf path eingerahmt werden? Einträge mit „/“ am Ende gelten für alles darunter, sonst nur genau der Pfad */
