@@ -15,9 +15,6 @@ export interface ModuleEmbed {
   flag?: string
 }
 
-/** Nachricht, mit der eine eingerahmte Seite ihre Höhe meldet (public/module-frame.js) */
-export interface ModuleFrameMessage { moduleFrameHeight: number }
-
 /** darf path eingerahmt werden? Einträge mit „/“ am Ende gelten für alles darunter, sonst nur genau der Pfad */
 export function framableBy(path: string, frameSelf: readonly string[] | undefined) {
   const p = path.split('?')[0]!
