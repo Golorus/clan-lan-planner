@@ -105,8 +105,10 @@ async function createEvent(fields: EventFields) {
         <p class="muted">{{ formatEventRange(current.startsAt, current.endsAt) }}<template v-if="current.location"> · {{ current.location }}</template> · aktuelles Event</p>
         <div class="stats">
           <NuxtLink to="/orga/teilnehmer"><strong>{{ people.length }}</strong><span>zugesagt</span></NuxtLink>
-          <NuxtLink to="/orga/teilnehmer"><strong>{{ team?.total?.offen ?? 0 }}</strong><span>offen</span></NuxtLink>
-          <NuxtLink to="/orga/teilnehmer"><strong>{{ team?.total?.abgesagt ?? 0 }}</strong><span>abgesagt</span></NuxtLink>
+          <NuxtLink to="/orga/teilnehmer?stand=nicht_zugesagt"><strong>{{ team?.total?.offen ?? 0 }}</strong><span>offen</span></NuxtLink>
+          <NuxtLink to="/orga/teilnehmer?stand=nicht_gebucht"><strong>{{ team?.total?.nichtGebucht ?? 0 }}</strong><span>nicht gebucht</span></NuxtLink>
+          <NuxtLink to="/orga/teilnehmer?stand=gebucht"><strong>{{ team?.total?.gebucht ?? 0 }}</strong><span>gebucht</span></NuxtLink>
+          <NuxtLink to="/orga/teilnehmer?stand=abgesagt"><strong>{{ team?.total?.abgesagt ?? 0 }}</strong><span>abgesagt</span></NuxtLink>
           <NuxtLink to="/orga/warteliste"><strong>{{ team?.total?.warteliste ?? 0 }}</strong><span>Warteliste</span></NuxtLink>
           <NuxtLink to="/orga/sitzplan"><strong>{{ people.filter(p => p.seat).length }}</strong><span>mit Platz</span></NuxtLink>
           <NuxtLink to="/orga/sitzplan"><strong>{{ people.filter(p => !p.seat).length }}</strong><span>ohne Platz</span></NuxtLink>
