@@ -24,6 +24,17 @@ export const STAGES: { key: Stage, label: string, steps: number | null, icon?: s
 ]
 const RANK = new Map(STAGES.map((s, i) => [s.key, i]))
 
+/**
+ * Zusammengefasste Stände, wie /leute in Discord sie auch kennt: „nicht gebucht“ ist kein eigener Status, sondern
+ * zugesagt (ohne oder mit Platz), aber noch ohne Buchung; „nicht zugesagt“ heißt offen oder eingeladen.
+ */
+export type StageGroup = 'nicht_zugesagt' | 'nicht_gebucht'
+export const STAGE_GROUPS: { key: StageGroup, label: string, title: string, stages: Stage[] }[] = [
+  { key: 'nicht_zugesagt', label: 'nicht zugesagt', title: 'offen oder eingeladen: noch keine Antwort', stages: ['offen', 'eingeladen'] },
+  { key: 'nicht_gebucht', label: 'nicht gebucht', title: 'zugesagt (mit oder ohne Platz), aber noch nicht gebucht', stages: ['zugesagt', 'platziert'] },
+]
+export const inStageGroup = (stage: Stage, group: StageGroup) => STAGE_GROUPS.find(g => g.key === group)!.stages.includes(stage)
+
 export interface StageInput {
   /** steht im aktuellen Event */
   registered: boolean

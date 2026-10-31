@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { EventFields } from '../../components/EventForm.vue'
 import type { Member } from '../../components/MemberPicker.vue'
-import { compareByStage, reachOf, stageOf, STAGES, unreached, type Reach, type Stage } from '#shared/utils/participantStage'
+import { compareByStage, inStageGroup, reachOf, stageOf, STAGE_GROUPS, STAGES, unreached, type Reach, type Stage, type StageGroup } from '#shared/utils/participantStage'
 
 definePageMeta({ middleware: 'leader' })
 useHead({ title: 'Teilnehmer · Orga' })
@@ -46,13 +46,15 @@ const rows = computed<Row[]>(() => {
   }).sort(compareByStage)
 })
 
-// ── Filter: Stand, „nicht erreicht“, „weicht ab“, Kontaktperson, Suche ──
-type Filter = 'alle' | Stage | 'unerreicht' | 'abweichend'
-const filter = ref<Filter>('alle')
+// ── Filter: Stand, zusammengefasster Stand, „nicht erreicht“, „weicht ab“, Kontaktperson, Suche ──
+type Filter = 'alle' | Stage | StageGroup | 'unerreicht' | 'abweichend'
+const FILTERS = new Set<string>(['alle', 'unerreicht', 'abweichend', ...STAGES.map(s => s.key), ...STAGE_GROUPS.map(g => g.key)])
+const filter = ref<Filter>(typeof route.query.stand === 'string' && FILTERS.has(route.query.stand) ? route.query.stand as Filter : 'alle')
+const isGroup = (f: Filter): f is StageGroup => STAGE_GROUPS.some(g => g.key === f)
 const contactFilter = ref<'alle' | 'ohne' | number>('alle')
 const q = ref(typeof route.query.q === 'string' ? route.query.q : '')
 const inContact = (r: Row) => contactFilter.value === 'alle' || (contactFilter.value === 'ohne' ? !r.contactId : r.contactId === contactFilter.value)
-const matches = (r: Row, f: Filter) => f === 'alle' || (f === 'unerreicht' ? unreached(r.reach) : f === 'abweichend' ? r.differs : r.stage === f)
+const matches = (r: Row, f: Filter) => f === 'alle' || (f === 'unerreicht' ? unreached(r.reach) : f === 'abweichend' ? r.differs : isGroup(f) ? inStageGroup(r.stage, f) : r.stage === f)
 const countOf = (f: Filter) => rows.value.filter(r => inContact(r) && matches(r, f)).length
 const shown = computed(() => {
   const needle = q.value.trim().toLocaleLowerCase('de')
@@ -224,6 +226,10 @@ const createEvent = (fields: EventFields & { copyRowsFrom?: number | null, makeC
         <button v-for="s in STAGES" :key="s.key" type="button" class="chip" :class="{ active: filter === s.key }" @click="filter = s.key">
           {{ s.label }} <b>{{ countOf(s.key) }}</b>
         </button>
+        <span class="sep" aria-hidden="true" />
+        <button v-for="g in STAGE_GROUPS" :key="g.key" type="button" class="chip" :class="{ active: filter === g.key }" :title="g.title" @click="filter = g.key">
+          {{ g.label }} <b>{{ countOf(g.key) }}</b>
+        </button>
         <button v-if="countOf('unerreicht')" type="button" class="chip warn" :class="{ active: filter === 'unerreicht' }" @click="filter = 'unerreicht'">nicht erreicht <b>{{ countOf('unerreicht') }}</b></button>
         <button v-if="countOf('abweichend')" type="button" class="chip warn" :class="{ active: filter === 'abweichend' }" @click="filter = 'abweichend'">Platz weicht ab <b>{{ countOf('abweichend') }}</b></button>
       </div>
@@ -343,7 +349,7 @@ const createEvent = (fields: EventFields & { copyRowsFrom?: number | null, makeC
 .chip.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .chip.warn, .chip.warn b { color: var(--err); }
 .toolbar { gap: 8px 12px; padding: 8px 10px; margin-bottom: 8px; border-radius: 8px; background: var(--bg); }
-.toolbar .sep { width: 1px; align-self: stretch; background: var(--border); }
+.toolbar .sep, .chips .sep { width: 1px; align-self: stretch; background: var(--border); }
 .toggle { gap: 6px; flex-wrap: nowrap; font-size: 14px; }
 .steps { display: inline-flex; gap: 3px; margin-right: 6px; vertical-align: 1px; }
 .steps i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--accent); }

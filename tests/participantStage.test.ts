@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compareByStage, reachOf, stageOf, STAGES, unreached, type ReachInput } from '../shared/utils/participantStage'
+import { compareByStage, inStageGroup, reachOf, stageOf, STAGES, unreached, type ReachInput } from '../shared/utils/participantStage'
 
 describe('Stand', () => {
   it('Ablauf: offen → eingeladen → zugesagt → platziert → gebucht', () => {
@@ -78,5 +78,12 @@ describe('Erreicht', () => {
     expect(unreached(reachOf({ ...base, discord: false }))).toBe(true)
     expect(reachOf({ ...base, stage: 'abgesagt', discord: false }).state).toBe('none')
     expect(reachOf({ ...base, stage: 'nicht' }).state).toBe('none')
+  })
+})
+
+describe('zusammengefasste Stände', () => {
+  it('„nicht gebucht“ = zugesagt oder platziert, „nicht zugesagt“ = offen oder eingeladen', () => {
+    expect(STAGES.filter(s => inStageGroup(s.key, 'nicht_gebucht')).map(s => s.key)).toEqual(['zugesagt', 'platziert'])
+    expect(STAGES.filter(s => inStageGroup(s.key, 'nicht_zugesagt')).map(s => s.key)).toEqual(['offen', 'eingeladen'])
   })
 })
