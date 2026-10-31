@@ -68,7 +68,7 @@ Die Schritt-für-Schritt-Anleitung steht in [ANLEITUNG-VPS.md](ANLEITUNG-VPS.md)
 
 Alle Einstellungen stehen in [.env.example](.env.example). Kopiere sie nach `.env` und fülle sie aus. Name der App und der Event-Rolle legst du mit `NUXT_PUBLIC_APP_NAME` und `NUXT_PUBLIC_EVENT_ROLE_NAME` fest, ohne den Code zu ändern.
 
-Lokal entwickeln: `npm install`, `.env` anlegen, `npm run dev`. Tests: `npm test` (Unit-Tests) und `npm run test:e2e` (über die echte API, startet selbst einen Test-Server ohne echten Discord-Bot).
+Lokal entwickeln: `npm install`, `.env` anlegen, `npm run dev`. Tests: `npm test` (Unit-Tests) und `npm run test:e2e` (über die echte API, startet selbst einen Test-Server ohne echten Discord-Bot). Dieselben Tests und `npx nuxi typecheck` laufen bei jedem Pull Request und jedem Push auf `main` in GitHub Actions ([.github/workflows/ci.yml](.github/workflows/ci.yml)).
 
 ## Lizenz
 
