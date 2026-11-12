@@ -3,7 +3,7 @@ import type { CommandOption } from '../../utils/discordCommands'
 
 /**
  * Discord-Interactions: die Knöpfe in unseren Direktnachrichten („Bin dabei“, „Ich habe gebucht“, „Platz annehmen“ …)
- * und die Slash-Befehle der Module.
+ * und die Slash-Befehle und Knöpfe der Module.
  * In der Discord-Anwendung unter General Information › Interactions Endpoint URL eintragen (ANLEITUNG-VPS.md).
  * Jede Anfrage ist mit dem Public Key der Anwendung signiert (NUXT_DISCORD_PUBLIC_KEY); ohne gültige Signatur 401.
  * Wer gedrückt hat, sagt Discord (interaction.user.id); das muss die Person der Teilnahme bzw. des Angebots sein.
@@ -20,7 +20,8 @@ interface Interaction {
   data?: { custom_id?: string, name?: string, options?: CommandOption[], components?: { components?: { custom_id?: string, value?: string }[] }[] }
   user?: { id: string }
   member?: { user?: { id: string } }
-  message?: { content?: string }
+  message?: { id?: string, content?: string }
+  channel_id?: string
 }
 
 const link = (label: string, url: string) => ({ type: 1, components: [{ type: 2, style: 5, label, url }] })
@@ -54,7 +55,7 @@ export default defineEventHandler(async (event) => {
     if (it.type === 2 || it.type === 4) {
       const cmd = findDiscordCommand(it.data?.name)
       if (!cmd) return it.type === 4 ? commandChoices([]) : reply('Diesen Befehl kenne ich nicht (mehr).')
-      return await cmd.handle({ type: it.type, userId, data: { name: cmd.name, options: it.data?.options } })
+      return await cmd.handle({ type: it.type, userId, channelId: it.channel_id, data: { name: cmd.name, options: it.data?.options } })
     }
     // Formular aus der Test-Nachricht abgeschickt
     if (it.type === 5 && it.data?.custom_id === 'tsm') {
@@ -70,6 +71,10 @@ export default defineEventHandler(async (event) => {
       return done(it.message?.content, `✅ Danke, ist notiert: gebucht${r.seat ? ` (Platz ${r.seat})` : ''}.${r.moved ? ' Im Sitzplan sitzt du jetzt dort.' : r.differs ? ' Der Platz ist im Sitzplan schon belegt, die Orga schaut drüber.' : ''}`)
     }
     if (it.type !== 3) return reply('Das kenne ich nicht.')
+
+    // Knöpfe der Module (registerDiscordButtons, z. B. die Spielrunden)
+    const mod = findDiscordButtons(it.data?.custom_id)
+    if (mod) return await mod.handle({ userId, customId: it.data!.custom_id!, channelId: it.channel_id, messageId: it.message?.id })
 
     const action = parseCustomId(it.data?.custom_id ?? '')
     if (!action) return reply('Dieser Knopf ist veraltet.')

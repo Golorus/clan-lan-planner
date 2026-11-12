@@ -242,3 +242,61 @@ export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),
 })
+
+// ── Gemeinsame Spielrunden vor Ort (Discord: /spielen, /spiele) ──
+
+/** Spiele bleiben über alle Events bestehen; jeder Zugesagte kann mit /spielen ein neues anlegen */
+export const games = sqliteTable('games', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  /** ohne Groß-/Kleinschreibung eindeutig (geprüft in findGame) */
+  name: text('name').notNull(),
+  createdBy: text('created_by'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+})
+
+/** Modi eines Spiels mit Plätzen (z. B. CS2 Wingman 2er-Stack: 2); archiviert = nicht mehr in der Auswahl, Verlauf bleibt */
+export const gameModes = sqliteTable('game_modes', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  gameId: integer('game_id').notNull().references(() => games.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  maxPlayers: integer('max_players').notNull(),
+  /** so viele braucht es mindestens; null = egal */
+  minPlayers: integer('min_players'),
+  archived: integer('archived', { mode: 'boolean' }).notNull().default(false),
+}, t => [index('game_modes_game_idx').on(t.gameId)])
+
+/**
+ * Eine Runde: Spiel, Modus, Uhrzeit, Plätze (beim Anlegen vom Modus übernommen oder für diese Runde angegeben).
+ * Ist sie voll, macht „Bin dabei“ die nächste Runde auf (series_id = erste Runde, number = 1, 2, …).
+ */
+export const gameRounds = sqliteTable('game_rounds', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  /** aktuelles Event beim Anlegen (für „letztes Mal gespielt“); null = ohne Event */
+  eventId: integer('event_id').references(() => events.id, { onDelete: 'set null' }),
+  gameId: integer('game_id').notNull().references(() => games.id, { onDelete: 'cascade' }),
+  modeId: integer('mode_id').notNull().references(() => gameModes.id, { onDelete: 'cascade' }),
+  seriesId: integer('series_id'),
+  number: integer('number').notNull().default(1),
+  startsAt: integer('starts_at', { mode: 'timestamp' }).notNull(),
+  maxPlayers: integer('max_players').notNull(),
+  minPlayers: integer('min_players'),
+  note: text('note'),
+  createdBy: text('created_by').notNull(),
+  /** offen = Anmeldung läuft; gestartet = vorbei, zählt als gespielt; abgesagt */
+  status: text('status', { enum: ['offen', 'gestartet', 'abgesagt'] }).notNull().default('offen'),
+  /** Karte im Discord-Kanal (fehlt, solange der Bot sie nicht selbst gepostet hat und noch niemand gedrückt hat) */
+  channelId: text('channel_id'),
+  messageId: text('message_id'),
+  /** Erinnerung „gleich geht's los“: wann fällig und wann verschickt */
+  remindAt: integer('remind_at', { mode: 'timestamp' }),
+  remindedAt: integer('reminded_at', { mode: 'timestamp' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+}, t => [index('game_rounds_status_idx').on(t.status, t.startsAt)])
+
+/** Wer in welcher Runde dabei ist (Discord-ID, Reihenfolge nach joined_at) */
+export const gameRoundPlayers = sqliteTable('game_round_players', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  roundId: integer('round_id').notNull().references(() => gameRounds.id, { onDelete: 'cascade' }),
+  discordId: text('discord_id').notNull(),
+  joinedAt: integer('joined_at', { mode: 'timestamp' }).notNull(),
+}, t => [uniqueIndex('game_round_players_round_user').on(t.roundId, t.discordId)])

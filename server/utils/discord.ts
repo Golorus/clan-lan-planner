@@ -134,6 +134,26 @@ export async function postChannelMessage(channelId: string, content: string, eve
   })).id
 }
 
+/**
+ * Nachricht mit Knöpfen in einen Kanal (Spielrunden). Gepingt werden nur die Discord-IDs in ping,
+ * Erwähnungen im Text sonst nicht; replyTo hängt sie als Antwort an eine Nachricht (fehlt die, trotzdem senden).
+ */
+export async function postChannelCard(channelId: string, content: string, opts: { components?: unknown[], ping?: string[], replyTo?: string | null } = {}) {
+  return (await discordApi<{ id: string }>('POST', `/channels/${channelId}/messages`, {
+    content: content.slice(0, 2000),
+    components: opts.components ?? [],
+    allowed_mentions: { parse: [], users: (opts.ping ?? []).slice(0, 100) },
+    ...(opts.replyTo ? { message_reference: { message_id: opts.replyTo, fail_if_not_exists: false } } : {}),
+  })).id
+}
+
+/** Eigene Nachricht des Bots ändern (Text und Knöpfe); pingt nie */
+export async function editChannelMessage(channelId: string, messageId: string, content: string, components: unknown[] = []) {
+  await discordApi('PATCH', `/channels/${channelId}/messages/${messageId}`, {
+    content: content.slice(0, 2000), components, allowed_mentions: { parse: [] },
+  })
+}
+
 /** Privaten Thread im Kanal anlegen: nur Mitglieder sehen ihn, nur Moderatoren laden ein; archiviert erst nach einer Woche Ruhe */
 export async function createPrivateThread(channelId: string, name: string) {
   return (await discordApi<{ id: string }>('POST', `/channels/${channelId}/threads`, {

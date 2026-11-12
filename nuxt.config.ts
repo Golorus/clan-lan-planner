@@ -7,8 +7,11 @@ import { fileURLToPath } from 'node:url'
 const MIGRATIONS = fileURLToPath(new URL('./server/database/migrations', import.meta.url))
 /** #shared zeigt sonst auf shared/ des einbindenden Projekts, nicht auf unseren Ordner */
 const SHARED = fileURLToPath(new URL('./shared', import.meta.url))
+/** Module, die der Planner selbst mitbringt (jedes mit eigenem Schalter); ein einbindendes Projekt bekommt sie mit */
+const OWN_LAYERS = [fileURLToPath(new URL('./layers/game-planner', import.meta.url))]
 
 export default defineNuxtConfig({
+  extends: OWN_LAYERS,
   compatibilityDate: '2026-10-01',
   devtools: { enabled: false },
   alias: { '#shared': SHARED },

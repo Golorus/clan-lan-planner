@@ -7,6 +7,7 @@ Planungs-Tool für einen Clan auf einer LAN-Party oder Messe, mit Login über Di
 - **Bedarfsabfrage**: Zusage und Absage mit Fristen, Warteliste mit automatischem Nachrücken, Platzwahl bis zum Buchungsstart
 - **Buchung**: Buchungscode und -link nur für Zugesagte, Abhaken „gebucht“ mit dem tatsächlichen Platz
 - **Discord-Bot**: Direktnachrichten und Erinnerungen, Ankündigung mit privatem Thread, Event-Rolle für alle Zugesagten; `/leute` zeigt Kontaktpersonen und Orga, wie weit ihre Leute sind (wer noch nicht zugesagt oder gebucht hat)
+- **Game Planner** (Modul `layers/game-planner`, aus mit `NUXT_PUBLIC_GAME_PLANNER=false`): `/spielen` macht vor Ort eine Spielrunde auf (Spiel, Modus, Uhrzeit), der Bot postet sie als Karte mit „Bin dabei“ in den Spielkanal, erinnert 15 Minuten vorher und öffnet bei voller Runde die nächste; `/spiele` zeigt die Spieleliste mit Modi und was zuletzt gespielt wurde; Startliste per `runtimeConfig.gamesSeed`, Spielkanal in /orga › Spiele
 - **Orga-Bereich**: Teilnehmer, Nachrichten, Protokoll, Import und Export
 
 ## Eigene Erweiterungen
