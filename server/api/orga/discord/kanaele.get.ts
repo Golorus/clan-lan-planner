@@ -1,4 +1,4 @@
-/** Textkanäle zur Auswahl für die Ankündigung, dazu der gespeicherte Kanal und Text */
+/** Textkanäle zur Auswahl für die Ankündigung und die Spielrunden, dazu die gespeicherten Kanäle und der Text */
 export default defineEventHandler(async (event) => {
   await requireLeader(event)
   const s = getDiscordSettings()
@@ -12,5 +12,5 @@ export default defineEventHandler(async (event) => {
       error = channelErrorText(e)
     }
   }
-  return { botConfigured: discordConfigured(), channels, channelId: s.announceChannelId, body: s.announceBody, defaultBody: DEFAULT_ANNOUNCE, error }
+  return { botConfigured: discordConfigured(), channels, channelId: s.announceChannelId, playChannelId: s.playChannelId, body: s.announceBody, defaultBody: DEFAULT_ANNOUNCE, error }
 })

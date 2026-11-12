@@ -22,6 +22,7 @@ import t09 from './09-bereich.mjs'
 import t10 from './10-daten-loeschen.mjs'
 import t11 from './11-seiten.mjs'
 import t13 from './13-freigabe.mjs'
+import t14 from './14-spielrunden.mjs'
 
 const anon = client(null, 'anonym')
 const leader = await login(null, 'Leitung')
@@ -43,7 +44,7 @@ if (setup.data?.botConfigured) {
 }
 
 const ctx = { anon, leader, rot, blau, anna, ben, cem, lib }
-for (const run of [t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t13]) await run(ctx)
+for (const run of [t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t13, t14]) await run(ctx)
 
 // Tests eigener Erweiterungen: layers/*/tests/e2e/*.mjs im Projekt, das den Test startet (bekommen ctx mit ctx.lib)
 const layers = join(process.cwd(), 'layers')

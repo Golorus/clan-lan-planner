@@ -20,6 +20,8 @@ export interface CommandInteraction {
   /** 2 = Befehl ausgeführt, 4 = Autovervollständigung */
   type: number
   userId: string
+  /** Kanal, in dem der Befehl getippt wurde */
+  channelId?: string
   data: { name: string, options?: CommandOption[] }
 }
 
