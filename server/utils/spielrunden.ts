@@ -95,6 +95,27 @@ export function gameStats() {
   return { games: sortGames(out), lastEventName: last ? db.select({ name: tables.events.name }).from(tables.events).where(eq(tables.events.id, last)).get()?.name ?? null : null }
 }
 
+/** Spiele aus runtimeConfig.gamesSeed anlegen, die es noch nicht gibt; Bestehendes bleibt unangetastet */
+export function seedGames() {
+  const seed = useRuntimeConfig().gamesSeed as { name?: unknown, modes?: { name?: unknown, max?: unknown, min?: unknown }[] }[] | undefined
+  if (!Array.isArray(seed)) return 0
+  const db = useDb()
+  let added = 0
+  for (const g of seed) {
+    const name = norm(String(g?.name ?? '')).slice(0, 60)
+    const modes = (Array.isArray(g?.modes) ? g.modes : [])
+      .map(m => ({ name: norm(String(m?.name ?? '')).slice(0, 60), max: Number(m?.max), min: m?.min === undefined ? null : Number(m.min) }))
+      .filter(m => m.name && Number.isInteger(m.max) && m.max >= 1 && m.max <= MAX_PLAYERS)
+    if (!name || !modes.length || findGame(name)) continue
+    db.transaction((tx) => {
+      const row = tx.insert(G).values({ name, createdAt: new Date() }).returning().get()
+      for (const m of modes) tx.insert(M).values({ gameId: row.id, name: m.name, maxPlayers: m.max, minPlayers: m.min && Number.isInteger(m.min) && m.min > 0 ? Math.min(m.min, m.max) : null }).run()
+    })
+    added++
+  }
+  return added
+}
+
 // ── Runden ──
 
 type RoundRow = typeof R.$inferSelect

@@ -44,6 +44,14 @@ export default defineNuxtConfig({
      * die der Planner selbst in einen Rahmen setzen darf (ModuleFrame.vue; „/x/“ am Ende = alles darunter)
      */
     csp: { scriptSrc: [] as string[], frameSelf: [] as string[] },
+    /**
+     * Spiele für /spielen, die beim Start angelegt werden, falls es sie noch nicht gibt (Name ohne Groß-/Kleinschreibung).
+     * Ein einbindendes Projekt setzt hier seine eigene Liste; einmal Angelegtes ändert die Orga mit /spiele ändern.
+     */
+    gamesSeed: [
+      { name: 'Counter-Strike 2', modes: [{ name: 'Premier (5er-Stack)', max: 5 }, { name: 'Wingman (2er-Stack)', max: 2 }, { name: '5 gegen 5 intern', max: 10, min: 6 }] },
+      { name: 'Dota 2', modes: [{ name: '5-Stack', max: 5 }, { name: '5 gegen 5 intern', max: 10, min: 10 }] },
+    ] as { name: string, modes: { name: string, max: number, min?: number }[] }[],
     discord: {
       botToken: '',
       guildId: '',

@@ -48,15 +48,3 @@ CREATE TABLE `games` (
 	`created_by` text,
 	`created_at` integer NOT NULL
 );
---> statement-breakpoint
-INSERT INTO `games` (`name`, `created_at`) VALUES ('Counter-Strike 2', strftime('%s','now')), ('Dota 2', strftime('%s','now')), ('League of Legends', strftime('%s','now')), ('Rocket League', strftime('%s','now')), ('Age of Empires II', strftime('%s','now'));--> statement-breakpoint
-INSERT INTO `game_modes` (`game_id`, `name`, `max_players`, `min_players`) SELECT `id`, 'Premier (5er-Stack)', 5, NULL FROM `games` WHERE `name` = 'Counter-Strike 2';--> statement-breakpoint
-INSERT INTO `game_modes` (`game_id`, `name`, `max_players`, `min_players`) SELECT `id`, 'Wingman (2er-Stack)', 2, NULL FROM `games` WHERE `name` = 'Counter-Strike 2';--> statement-breakpoint
-INSERT INTO `game_modes` (`game_id`, `name`, `max_players`, `min_players`) SELECT `id`, '5 gegen 5 intern', 10, 6 FROM `games` WHERE `name` = 'Counter-Strike 2';--> statement-breakpoint
-INSERT INTO `game_modes` (`game_id`, `name`, `max_players`, `min_players`) SELECT `id`, '5-Stack', 5, NULL FROM `games` WHERE `name` = 'Dota 2';--> statement-breakpoint
-INSERT INTO `game_modes` (`game_id`, `name`, `max_players`, `min_players`) SELECT `id`, '5 gegen 5 intern', 10, 10 FROM `games` WHERE `name` = 'Dota 2';--> statement-breakpoint
-INSERT INTO `game_modes` (`game_id`, `name`, `max_players`, `min_players`) SELECT `id`, '5er-Stack', 5, NULL FROM `games` WHERE `name` = 'League of Legends';--> statement-breakpoint
-INSERT INTO `game_modes` (`game_id`, `name`, `max_players`, `min_players`) SELECT `id`, '5 gegen 5 intern', 10, 10 FROM `games` WHERE `name` = 'League of Legends';--> statement-breakpoint
-INSERT INTO `game_modes` (`game_id`, `name`, `max_players`, `min_players`) SELECT `id`, '3er-Stack', 3, NULL FROM `games` WHERE `name` = 'Rocket League';--> statement-breakpoint
-INSERT INTO `game_modes` (`game_id`, `name`, `max_players`, `min_players`) SELECT `id`, '2er-Stack', 2, NULL FROM `games` WHERE `name` = 'Rocket League';--> statement-breakpoint
-INSERT INTO `game_modes` (`game_id`, `name`, `max_players`, `min_players`) SELECT `id`, 'Team-Spiel', 8, 2 FROM `games` WHERE `name` = 'Age of Empires II';

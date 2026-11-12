@@ -23,7 +23,7 @@ export default async function (ctx) {
   const [p1, p2] = zugesagt
 
   const ac = await interaction({ type: 4, user: { id: ORGA }, data: { name: 'spielen', options: [opt('spiel', 'coun', 3, true)] } })
-  check(ac.data?.type === 8 && ac.data.data.choices.some(c => c.value === 'Counter-Strike 2'), '/spielen: Spiele werden vorgeschlagen (vorbefüllt)')
+  check(ac.data?.type === 8 && ac.data.data.choices.some(c => c.value === 'Counter-Strike 2'), '/spielen: Spiele werden vorgeschlagen (aus gamesSeed)')
   const acMode = await interaction({ type: 4, user: { id: ORGA }, data: { name: 'spielen', options: [opt('spiel', 'Counter-Strike 2'), opt('modus', '', 3, true)] } })
   check(acMode.data?.data?.choices.some(c => c.value === 'Wingman (2er-Stack)' && /2 Plätze/.test(c.name)), '/spielen: Modi des Spiels mit Plätzen')
 
