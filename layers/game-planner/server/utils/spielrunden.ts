@@ -2,14 +2,14 @@ import { and, asc, desc, eq, isNull, lte, ne, sql } from 'drizzle-orm'
 import {
   gameChoiceLabel, MAX_AHEAD_MS, MAX_PLAYERS, OPEN_AFTER_START_MS, parseRoundButton, parseRoundTime, REMIND_BEFORE_MS,
   remindAtFor, roundButtons, roundCardText, roundTitle, sortGames, type GameStat, type RoundView,
-} from '#shared/utils/spielrunden'
-import type { CommandInteraction, DiscordCommand } from './discordCommands'
+} from '../../shared/spielrunden'
+import type { ButtonPress, CommandInteraction, DiscordCommand } from '../../../../server/utils/discordCommands'
 
 /**
  * Gemeinsame Spielrunden vor Ort: /spielen macht eine Runde auf, der Bot postet sie als Karte in den Spielkanal
- * (/orga › Discord), Knöpfe „Bin dabei“, „Raus“, „Absagen“. Ist eine Runde voll, macht „Bin dabei“ die nächste auf.
+ * (/orga › Spiele), Knöpfe „Bin dabei“, „Raus“, „Absagen“. Ist eine Runde voll, macht „Bin dabei“ die nächste auf.
  * 15 Minuten vor dem Start erinnert der Bot die Spieler im Kanal; 30 Minuten nach dem Start gilt sie als gespielt.
- * Mitmachen dürfen Zugesagte des aktuellen Events und die Orga. Text und Knöpfe: shared/utils/spielrunden.ts.
+ * Mitmachen dürfen Zugesagte des aktuellen Events und die Orga. Text und Knöpfe: ../../shared/spielrunden.ts.
  */
 
 const STRING = 3
@@ -28,9 +28,16 @@ const reply = (text: string) => ({ type: MESSAGE, data: { content: text.slice(0,
 const norm = (s: string) => s.trim().replace(/\s+/g, ' ')
 const same = (a: string, b: string) => norm(a).toLocaleLowerCase('de') === norm(b).toLocaleLowerCase('de')
 
-/** Kanal für die Karten aus /orga › Discord; ohne Kanal oder Bot antwortet /spielen mit der Karte dort, wo getippt wurde */
-export function playChannelId() {
-  return getDiscordSettings().playChannelId
+/** Einstellungen des Moduls (settings, Schlüssel „gamePlanner“): Kanal für die Karten aus /orga › Spiele */
+export function playChannelId(): string | null {
+  const row = useDb().select().from(tables.settings).where(eq(tables.settings.key, 'gamePlanner')).get()
+  const id = row ? (JSON.parse(row.value) as { channelId?: unknown }).channelId : null
+  return typeof id === 'string' && /^\d{5,25}$/.test(id) ? id : null
+}
+
+export function savePlayChannelId(channelId: string | null) {
+  const value = JSON.stringify({ channelId })
+  useDb().insert(tables.settings).values({ key: 'gamePlanner', value }).onConflictDoUpdate({ target: tables.settings.key, set: { value } }).run()
 }
 
 function botCanPost() {
@@ -401,9 +408,7 @@ export const spieleCommand: DiscordCommand = {
 
 // ── Knöpfe unter der Karte ──
 
-interface ButtonPress { userId: string, customId: string, channelId?: string, messageId?: string }
-
-/** Kommt von /api/discord/interactions für custom_id sr:…; null = kein Spielrunden-Knopf */
+/** Knöpfe mit custom_id sr:… (angemeldet in server/plugins/spielrunden.ts) */
 export async function handleRoundButton(p: ButtonPress) {
   const btn = parseRoundButton(p.customId)
   if (!btn) return null
@@ -479,6 +484,6 @@ export async function handleRoundButton(p: ButtonPress) {
 /** Für die Einrichtungs-Ampel: ist ein Spielkanal gewählt? */
 export function playChannelCheck() {
   const ok = !!playChannelId()
-  return [{ key: 'play-channel', level: ok ? 'ok' as const : 'warn' as const, text: ok ? 'Spielkanal für /spielen gewählt.' : 'Kein Spielkanal für /spielen gewählt (Discord › Spielrunden); Karten erscheinen dann dort, wo der Befehl getippt wurde.' }]
+  return [{ key: 'play-channel', level: ok ? 'ok' as const : 'warn' as const, text: ok ? 'Spielkanal für /spielen gewählt.' : 'Kein Spielkanal für /spielen gewählt (/orga › Spiele); Karten erscheinen dann dort, wo der Befehl getippt wurde.' }]
 }
 

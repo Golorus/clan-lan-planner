@@ -6,6 +6,6 @@ const bodySchema = z.object({ channelId: z.string().regex(/^\d{5,25}$/).nullable
 export default defineEventHandler(async (event) => {
   await requireLeader(event)
   const { channelId } = await readValidatedBody(event, bodySchema.parse)
-  saveDiscordSettings({ playChannelId: channelId })
-  return { playChannelId: getDiscordSettings().playChannelId }
+  savePlayChannelId(channelId)
+  return { playChannelId: playChannelId() }
 })

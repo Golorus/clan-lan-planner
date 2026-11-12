@@ -3,9 +3,9 @@ import { resolveRoles, type RoleConfig } from './roleGuard'
 
 /**
  * In /orga gespeicherte Discord-Einstellungen (settings, Schlüssel „discord“): Event-Rolle (leer = aus der .env),
- * Kanal für Ankündigungen (#organisation) und der Text dafür, Kanal für Spielrunden (/spielen).
+ * Kanal für Ankündigungen (#organisation) und der Text dafür.
  */
-export interface DiscordSettings { eventRoleId: string | null, announceChannelId: string | null, announceBody: string, playChannelId: string | null }
+export interface DiscordSettings { eventRoleId: string | null, announceChannelId: string | null, announceBody: string }
 
 export const DEFAULT_ANNOUNCE = '@everyone {event} steht an: {datum}{ort}! Wer kommt mit? Sagt bis {frist} im Planner zu, dort sucht ihr euch auch gleich euren Platz aus: {link}\nAlles Weitere besprechen wir im Thread.'
 
@@ -16,7 +16,6 @@ export function getDiscordSettings(): DiscordSettings {
   return {
     eventRoleId: id(saved.eventRoleId),
     announceChannelId: id(saved.announceChannelId),
-    playChannelId: id(saved.playChannelId),
     announceBody: typeof saved.announceBody === 'string' && saved.announceBody.trim() ? saved.announceBody : DEFAULT_ANNOUNCE,
   }
 }

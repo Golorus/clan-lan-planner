@@ -3,7 +3,7 @@ import type { CommandOption } from '../../utils/discordCommands'
 
 /**
  * Discord-Interactions: die Knöpfe in unseren Direktnachrichten („Bin dabei“, „Ich habe gebucht“, „Platz annehmen“ …)
- * und die Slash-Befehle der Module.
+ * und die Slash-Befehle und Knöpfe der Module.
  * In der Discord-Anwendung unter General Information › Interactions Endpoint URL eintragen (ANLEITUNG-VPS.md).
  * Jede Anfrage ist mit dem Public Key der Anwendung signiert (NUXT_DISCORD_PUBLIC_KEY); ohne gültige Signatur 401.
  * Wer gedrückt hat, sagt Discord (interaction.user.id); das muss die Person der Teilnahme bzw. des Angebots sein.
@@ -72,9 +72,9 @@ export default defineEventHandler(async (event) => {
     }
     if (it.type !== 3) return reply('Das kenne ich nicht.')
 
-    // Spielrunden: Knöpfe unter den Karten im Spielkanal (server/utils/spielrunden.ts)
-    const round = await handleRoundButton({ userId, customId: it.data?.custom_id ?? '', channelId: it.channel_id, messageId: it.message?.id })
-    if (round) return round
+    // Knöpfe der Module (registerDiscordButtons, z. B. die Spielrunden)
+    const mod = findDiscordButtons(it.data?.custom_id)
+    if (mod) return await mod.handle({ userId, customId: it.data!.custom_id!, channelId: it.channel_id, messageId: it.message?.id })
 
     const action = parseCustomId(it.data?.custom_id ?? '')
     if (!action) return reply('Dieser Knopf ist veraltet.')

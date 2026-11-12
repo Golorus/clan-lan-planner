@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { utcToBerlinLocal } from '../shared/utils/eventTime'
+import { utcToBerlinLocal } from '../../../shared/utils/eventTime'
 import {
   gameChoiceLabel, parseRoundButton, parseRoundTime, remindAtFor, roundButtons, roundCardText, sortGames, type RoundView,
-} from '../shared/utils/spielrunden'
+} from '../shared/spielrunden'
 
 // Fr 20.11.2026, 19:00 in Berlin (Winterzeit, UTC+1)
 const NOW = new Date('2026-11-20T18:00:00Z')

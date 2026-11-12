@@ -1,8 +1,8 @@
 /**
  * Gemeinsame Spielrunden vor Ort (Discord: /spielen, /spiele), der Teil ohne Datenbank:
- * Uhrzeit lesen, Karte und Knöpfe bauen, Spiele für die Auswahl sortieren. Server-Teil: server/utils/spielrunden.ts.
+ * Uhrzeit lesen, Karte und Knöpfe bauen, Spiele für die Auswahl sortieren. Server-Teil: ../server/utils/spielrunden.ts.
  */
-import { berlinToUtcIso, utcToBerlinLocal } from './eventTime'
+import { berlinToUtcIso, utcToBerlinLocal } from '../../../shared/utils/eventTime'
 
 /** Erinnerung so lange vor dem Start */
 export const REMIND_BEFORE_MS = 15 * 60_000

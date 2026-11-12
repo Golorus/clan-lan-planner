@@ -1,5 +1,5 @@
 /**
- * Slash-Befehle von Modulen (z. B. /led im CaGGtus-Planner). Der Planner hat nur einen Interactions-Endpunkt
+ * Slash-Befehle und Knöpfe von Modulen (z. B. /led, /spielen). Der Planner hat nur einen Interactions-Endpunkt
  * (/api/discord/interactions); Module hängen ihre Befehle hier an, meist in einem Nitro-Plugin:
  *
  *   export default defineNitroPlugin(() => registerDiscordCommand({ name: 'led', description: '…', handle }))
@@ -47,6 +47,37 @@ export function findDiscordCommand(name: string | undefined) {
 
 export function listDiscordCommands() {
   return [...commands.values()]
+}
+
+/** Ein Knopf (Message Component), den ein Modul selbst unter seine Nachrichten setzt */
+export interface ButtonPress {
+  userId: string
+  customId: string
+  /** Kanal und Nachricht, an der der Knopf hängt */
+  channelId?: string
+  messageId?: string
+}
+
+export interface DiscordButtons {
+  /** custom_id beginnt mit „<prefix>:“ (z. B. sr:dabei:7); Buchstaben, höchstens 8 */
+  prefix: string
+  /** Antwort im Format der Discord-API, z. B. { type: 7, data: … } (Nachricht ersetzen) */
+  handle: (p: ButtonPress) => unknown | Promise<unknown>
+}
+
+const buttons = new Map<string, DiscordButtons>()
+/** vom Planner selbst belegt (server/utils/buttons.ts) */
+const CORE_PREFIXES = ['st', 'bk', 'bkm', 'of', 'rem', 'fg', 'test', 'tsm']
+
+/** Knöpfe eines Moduls anmelden; sie kommen über /api/discord/interactions zurück */
+export function registerDiscordButtons(b: DiscordButtons) {
+  if (!/^[a-z]{1,8}$/.test(b.prefix) || CORE_PREFIXES.includes(b.prefix)) throw new Error(`Ungültiges Knopf-Präfix: ${b.prefix}`)
+  buttons.set(b.prefix, b)
+}
+
+export function findDiscordButtons(customId: string | undefined) {
+  const prefix = /^([a-z]{1,8}):/.exec(customId ?? '')?.[1]
+  return prefix ? buttons.get(prefix) : undefined
 }
 
 /** Antwort, die nur der Aufrufer sieht */

@@ -61,25 +61,6 @@ async function registerCommands() {
   }
 }
 
-/** Spielrunden: Kanal für die Karten aus /spielen */
-const { data: kan } = await useFetch('/api/orga/discord/kanaele', { key: 'orga-kanaele' })
-const playChannel = ref(kan.value?.playChannelId ?? '')
-watch(kan, (d) => {
-  if (d && !playChannel.value) playChannel.value = d.playChannelId ?? ''
-})
-const playState = ref('')
-async function savePlayChannel() {
-  playState.value = ''
-  try {
-    await api('/api/orga/discord/spielkanal', { method: 'PUT', body: { channelId: playChannel.value || null } })
-    playState.value = 'Gespeichert.'
-    await refreshSetup()
-  }
-  catch (e) {
-    playState.value = apiError(e)
-  }
-}
-
 async function testBot() {
   busy.value = true
   testState.value = 'Sende …'
@@ -144,26 +125,6 @@ async function testBot() {
       <div class="row">
         <button class="btn" :disabled="busy || !cmds.botConfigured" @click="registerCommands">Befehle bei Discord anmelden</button>
         <span class="muted small">{{ cmdState }}</span>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>Spielrunden</h2>
-      <p class="muted small">
-        Mit <code>/spielen</code> macht jeder Zugesagte eine Runde auf (Spiel, Modus, Uhrzeit). Der Bot postet sie als Karte in diesen Kanal,
-        erinnert die Spieler 15 Minuten vor dem Start und macht bei voller Runde die nächste auf. <code>/spiele liste</code> zeigt alle Spiele,
-        die Orga ändert Plätze mit <code>/spiele ändern</code>. Ohne Kanal erscheint die Karte dort, wo der Befehl getippt wurde.
-        Der Bot braucht in diesem Kanal „Nachrichten senden“.
-      </p>
-      <p v-if="!kan?.botConfigured" class="muted small">Der Discord-Bot ist nicht eingerichtet.</p>
-      <p v-else-if="kan.error" class="err small">{{ kan.error }}</p>
-      <div v-else class="row">
-        <select v-model="playChannel" aria-label="Spielkanal">
-          <option value="">kein Kanal</option>
-          <option v-for="c in kan.channels" :key="c.id" :value="c.id"># {{ c.name }}</option>
-        </select>
-        <button class="btn" @click="savePlayChannel">Speichern</button>
-        <span class="muted small">{{ playState }}</span>
       </div>
     </section>
 

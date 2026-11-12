@@ -1,8 +1,9 @@
-import { check, ID, interaction } from './lib.mjs'
+
 
 /** Spielrunden: /spielen, /spiele, Knöpfe unter der Karte (ohne Bot erscheint die Karte als Antwort auf den Befehl) */
 export default async function (ctx) {
   const { regOf } = ctx
+  const { check, ID, interaction } = ctx.lib
   console.log('Spielrunden')
   const ping = await interaction({ type: 1 })
   if (ping.status === 401) {
@@ -78,10 +79,13 @@ export default async function (ctx) {
   const gone = await interaction({ type: 4, user: { id: ORGA }, data: { name: 'spielen', options: [opt('spiel', 'Testspiel', 3, true)] } })
   check(!gone.data?.data?.choices.some(c => c.value === 'Testspiel E2E'), 'Spiel ohne Modus nicht mehr in der Auswahl')
 
-  const kan = await ctx.leader.get('/api/orga/discord/kanaele')
+  const kan = await ctx.leader.get('/api/orga/spiele')
   check(kan.status === 200 && kan.data.playChannelId === null, 'Spielkanal: noch keiner')
-  const put = await ctx.leader.put('/api/orga/discord/spielkanal', { channelId: '700000000000000009' })
+  const put = await ctx.leader.put('/api/orga/spiele/kanal', { channelId: '700000000000000009' })
   check(put.status === 200 && put.data.playChannelId === '700000000000000009', 'Spielkanal speichern')
-  check((await ctx.rot.put('/api/orga/discord/spielkanal', { channelId: null })).status === 403, 'Kontaktperson setzt den Spielkanal nicht')
-  await ctx.leader.put('/api/orga/discord/spielkanal', { channelId: null })
+  check((await ctx.rot.put('/api/orga/spiele/kanal', { channelId: null })).status === 403, 'Kontaktperson setzt den Spielkanal nicht')
+  await ctx.leader.put('/api/orga/spiele/kanal', { channelId: null })
+  const page = await ctx.leader.get('/orga/spiele')
+  check(page.status === 200 && /Spielkanal/.test(page.text) && /Counter-Strike 2/.test(page.text), '/orga/spiele zeigt Spielkanal und Spieleliste')
+  check((await ctx.leader.get('/orga')).text.includes('/orga/spiele'), 'Orga-Reiter „Spiele“')
 }
