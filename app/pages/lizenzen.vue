@@ -59,7 +59,7 @@ const license = (holder: string) => `MIT License\n\nCopyright (c) 2026 ${holder}
         (Reihen à 40 Plätze, Tische zu zweit, doppelt breite Plätze). Er steht unter der MIT-Lizenz:
       </p>
       <pre class="license">{{ license('Tobias Brinke') }}</pre>
-      <p class="muted small">Weitere verwendete Bibliotheken (Nuxt, Vue, Drizzle ORM, better-sqlite3, zod, nuxt-auth-utils) stehen unter der MIT-Lizenz.</p>
+      <p class="muted small">Weitere verwendete Bibliotheken (Nuxt, Vue, Drizzle ORM, better-sqlite3, zod, nuxt-auth-utils, uqr) stehen unter der MIT-Lizenz.</p>
     </section>
   </div>
 </template>
