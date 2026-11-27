@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Reach, Stage } from '../shared/utils/participantStage'
-import { peopleOverview, type OverviewPerson } from '../shared/utils/peopleOverview'
+import { openCount, peopleOverview, type OverviewPerson } from '../shared/utils/peopleOverview'
 
 const ok: Reach = { state: 'ok', label: 'Info angekommen', kind: 'registrierung', at: null, error: null }
 const fail: Reach = { state: 'fehler', label: 'Buchung: Fehler', kind: 'buchung', at: null, error: 'x' }
@@ -59,5 +59,20 @@ describe('/leute: Stand der Leute als Text', () => {
     expect(t).toMatch(/\*\*Noch nicht zugesagt \(100\)\*\*[\s\S]*… und \d+ weitere/)
     expect(t).toMatch(/\*\*Zugesagt, noch nicht gebucht \(100\)\*\*[\s\S]*… und \d+ weitere/)
     expect(t).toContain('Ganze Liste')
+  })
+})
+
+describe('DM an Kontaktpersonen: ihre offenen Leute', () => {
+  it('zählt wie „was noch fehlt“: Freigabe, nicht zugesagt, nicht gebucht, Warteliste', () => {
+    expect(openCount(people)).toBe(6)
+    expect(openCount([p('Anna', 'gebucht'), p('Gina', 'abgesagt'), p('Hans', 'nicht')])).toBe(0)
+  })
+
+  it('setzt den Gruß vor die Überschrift und bleibt unter 2000 Zeichen', () => {
+    const many = Array.from({ length: 200 }, (_, i) => p(`Person${i}`, i % 2 ? 'offen' : 'zugesagt'))
+    const t = peopleOverview(many, { ...opts, filter: 'offen', link: 'https://x/kontakt', intro: 'Hallo Rot, hier ist der Stand.\nBedarfsabfrage endet Freitag!' })
+    expect(t.startsWith('Hallo Rot, hier ist der Stand.\nBedarfsabfrage endet Freitag!\n\n**Deine Leute · LAN 2026**')).toBe(true)
+    expect(t.length).toBeLessThanOrEqual(2000)
+    expect(t).toContain('Ganze Liste: <https://x/kontakt>')
   })
 })

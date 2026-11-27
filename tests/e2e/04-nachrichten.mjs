@@ -43,6 +43,23 @@ export default async function (ctx) {
   check(afterDone.every(p => p.info && p.info.status !== 'fehler'), `danach hat niemand mehr „ohne Info“ (${doneAll.data.done} abgehakt)`)
   await expectStatus(leader.put('/api/orga/nachrichten/einstellungen', settingsBefore), 200, 'automatische Info-Nachricht wieder einschalten')
 
+  console.log('Kontaktpersonen: ihre offenen Leute')
+  await expectStatus(rot.post('/api/orga/nachrichten/kontakte', { dryRun: true }), 403, 'Kontaktperson darf den Knopf nicht')
+  const kpDry = await expectStatus(leader.post('/api/orga/nachrichten/kontakte', { dryRun: true, note: 'Frist endet Freitag' }), 200, 'Vorschau an Kontaktpersonen')
+  check(Array.isArray(kpDry.data.recipients) && Array.isArray(kpDry.data.skipped), 'Vorschau nennt Empfänger und Übersprungene')
+  check(kpDry.data.recipients.length + kpDry.data.skipped.length >= 2, `alle Kontaktpersonen bewertet (${kpDry.data.recipients.length} + ${kpDry.data.skipped.length})`)
+  if (kpDry.data.recipients.length) {
+    check(kpDry.data.preview.includes('Frist endet Freitag') && kpDry.data.preview.includes('**Deine Leute'), 'Vorschau mit Zusatz und Liste')
+    check(kpDry.data.preview.length <= 2000, 'Vorschau passt in eine Discord-Nachricht')
+    const kpSent = await expectStatus(leader.post('/api/orga/nachrichten/kontakte', {}), 200, 'Übersicht an Kontaktpersonen verschicken')
+    check(kpSent.data.recipients === kpDry.data.recipients.length, 'so viele wie in der Vorschau')
+    const again = await expectStatus(leader.post('/api/orga/nachrichten/kontakte', { dryRun: true }), 200, 'Vorschau direkt danach')
+    check(again.data.recipients.length === 0 && again.data.skipped.some(s => s.reason.includes('12 Stunden')), 'gleich danach niemand doppelt')
+    await expectStatus(leader.post('/api/orga/nachrichten/kontakte', {}), 400, 'zweimal hintereinander → nichts zu senden')
+    const list = (await leader.get('/api/orga/nachrichten')).data.batches
+    check(list.some(b => b.id === kpSent.data.id && b.target.startsWith('Kontaktpersonen')), 'steht unter „Versendet“')
+  }
+
   console.log('Rate-Limit')
   let limited = false
   for (let i = 0; i < 40 && !limited; i++) limited = (await dana.post('/api/sitzplan/platz', { registrationId: A, seat: 'A-90' })).status === 429

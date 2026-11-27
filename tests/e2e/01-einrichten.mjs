@@ -38,6 +38,7 @@ export default async function (ctx) {
     ['/api/orga/kontakte', 'post', { discordId: ID.anna, discordName: 'anna', nick: 'Anna' }],
     ['/api/orga/events', 'post', { name: 'X', startsAt: '2026-01-01T10:00', endsAt: '2026-01-02T10:00', copyRowsFrom: null, makeCurrent: true }],
     ['/api/orga/nachrichten', 'post', { target: { type: 'all' }, body: 'Spam' }],
+    ['/api/orga/nachrichten/kontakte', 'post', { dryRun: true }],
     ['/api/orga/sitzplan-import', 'post', []],
   ]) {
     await expectStatus(anna[method](path, body), 403, `Teilnehmer ${method.toUpperCase()} ${path}`)

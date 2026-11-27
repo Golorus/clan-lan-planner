@@ -206,7 +206,7 @@ export const messageDeliveries = sqliteTable('message_deliveries', {
   batchId: integer('batch_id').references(() => messageBatches.id, { onDelete: 'cascade' }),
   eventId: integer('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
   kind: text('kind', { enum: ['manuell', 'registrierung', 'umsetzung', 'erinnerung_offen', 'erinnerung_platz', 'erinnerung_buchung',
-    'buchung', 'absage_kontakt', 'angebot', 'nachgerueckt_kontakt', 'bereich'] }).notNull(),
+    'buchung', 'absage_kontakt', 'angebot', 'nachgerueckt_kontakt', 'bereich', 'kontakt_offen'] }).notNull(),
   body: text('body').notNull(),
   text: text('text'),
   registrationId: integer('registration_id').references(() => registrations.id, { onDelete: 'set null' }),
