@@ -17,8 +17,8 @@ async function caller(userId: string) {
   return { contact, leader: await isLeader(userId) }
 }
 
-/** Alle Personen mit ihrem Stand im aktuellen Event, wie /orga › Teilnehmer; abgelehnte fallen weg */
-function loadPeople(eventId: number, bookingReleased: boolean) {
+/** Alle Personen mit ihrem Stand im aktuellen Event, wie /orga › Teilnehmer; abgelehnte fallen weg (auch für die DM an Kontaktpersonen) */
+export function loadEventPeople(eventId: number, bookingReleased: boolean) {
   const db = useDb()
   const regs = new Map(loadRegistrations(db, eventId).map(r => [r.personId, r]))
   const messages = deliveryStatus(eventId, ['registrierung', 'erinnerung_offen', 'manuell', 'buchung', 'angebot'])
@@ -78,7 +78,7 @@ async function handle(it: CommandInteraction) {
   }
 
   const filter = (OVERVIEW_FILTERS.some(f => f.value === values.zeige) ? values.zeige : 'offen') as OverviewFilter
-  const people = loadPeople(ev.id, !!ev.bookingReleasedAt).filter(p => contactId === undefined || p.contactId === contactId)
+  const people = loadEventPeople(ev.id, !!ev.bookingReleasedAt).filter(p => contactId === undefined || p.contactId === contactId)
   const text = peopleOverview(people, {
     title,
     eventName: ev.name,

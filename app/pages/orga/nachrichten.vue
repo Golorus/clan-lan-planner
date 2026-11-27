@@ -90,6 +90,23 @@ function send() {
   })
 }
 
+// ── An Kontaktpersonen: ihre offenen Leute ──
+const kpNote = ref('')
+const kpPreview = ref<{ recipients: { nick: string, open: number }[], skipped: { nick: string, reason: string }[], preview: string } | null>(null)
+const loadKpPreview = () => run(async () => {
+  kpPreview.value = await api('/api/orga/nachrichten/kontakte', { method: 'POST', body: { dryRun: true, note: kpNote.value } })
+})
+function sendKp() {
+  const n = kpPreview.value?.recipients.length ?? 0
+  if (!n || !confirm(`${n} Kontaktpersonen ihre offenen Leute per DM schicken?`)) return
+  run(async () => {
+    const r = await api<{ recipients: number }>('/api/orga/nachrichten/kontakte', { method: 'POST', body: { note: kpNote.value } })
+    info.value = `Wird an ${r.recipients} Kontaktpersonen verschickt (etwa eine pro Sekunde). Den Stand siehst du unten unter „Versendet“.`
+    kpPreview.value = null
+    kpNote.value = ''
+  })
+}
+
 // ── Versandstatus ──
 const open = ref<number | null>(null)
 const deliveries = ref<Array<{ id: number, nick: string, status: string, error: string | null, text: string | null }>>([])
@@ -140,7 +157,7 @@ const KINDS: [Kind, string, string, boolean][] = [
   ['nachgerueckt_kontakt', 'Nachgerückt, an die Kontaktperson', '{kontakt} ist die Kontaktperson, {nick} wer nachgerückt ist.', true],
   ['bereich', 'Platz außerhalb des gemeldeten Bereichs', 'Beim Fixieren des Bereichs an alle, die außerhalb saßen; {platz} ist der bisherige Platz. Geht immer raus.', false],
 ]
-const KIND_LABEL = Object.fromEntries(KINDS.map(([k, l]) => [k, l])) as Record<string, string>
+const KIND_LABEL = { ...Object.fromEntries(KINDS.map(([k, l]) => [k, l])), kontakt_offen: 'Offene Leute an die Kontaktperson' } as Record<string, string>
 const settings = reactive(Object.fromEntries(KINDS.map(([k]) => [k, { enabled: true, body: '' }])) as Record<Kind, { enabled: boolean, body: string }>)
 watch(() => data.value?.settings, (s) => {
   if (s) Object.assign(settings, JSON.parse(JSON.stringify(s)))
@@ -192,6 +209,26 @@ const saveSettings = () => run(async () => {
       <p v-if="preview" class="preview"><span class="muted small">Vorschau für {{ recipients[0]?.nick }}:</span><br>{{ preview }}</p>
       <p v-if="withoutDiscord" class="muted small">{{ withoutDiscord }} Empfänger ohne Discord-ID (aus dem Import) bekommen nichts.</p>
       <button class="btn primary" :disabled="busy || !body.trim() || !recipients.length" @click="send">An {{ recipients.length }} Empfänger senden</button>
+    </section>
+
+    <section class="card">
+      <h2>Kontaktpersonen an ihre Offenen erinnern</h2>
+      <p class="muted small">Jede Kontaktperson bekommt per DM die Liste ihrer Leute, bei denen noch etwas fehlt (wie <code>/leute</code> in Discord), mit Link auf „Meine Leute“. Wer nichts Offenes hat oder in den letzten 12 Stunden schon eine Liste bekommen hat, wird übersprungen.</p>
+      <label class="field"><span>Zusatz der Orga (optional)</span>
+        <input v-model="kpNote" maxlength="300" placeholder="z. B. Bedarfsabfrage endet Freitag!">
+      </label>
+      <div class="row kp-actions">
+        <button class="btn" :disabled="busy" @click="loadKpPreview">Vorschau</button>
+        <button v-if="kpPreview" class="btn primary" :disabled="busy || !kpPreview.recipients.length" @click="sendKp">An {{ kpPreview.recipients.length }} Kontaktpersonen senden</button>
+      </div>
+      <template v-if="kpPreview">
+        <p class="small">
+          <span v-if="kpPreview.recipients.length">Bekommen eine Liste: {{ kpPreview.recipients.map(r => `${r.nick} (${r.open} offen)`).join(', ') }}</span>
+          <span v-else>Gerade hat keine Kontaktperson etwas Offenes.</span>
+        </p>
+        <p v-if="kpPreview.skipped.length" class="muted small">Übersprungen: {{ kpPreview.skipped.map(s => `${s.nick} (${s.reason})`).join(', ') }}</p>
+        <p v-if="kpPreview.preview" class="preview"><span class="muted small">Vorschau für {{ kpPreview.recipients[0]?.nick }}:</span><br>{{ kpPreview.preview }}</p>
+      </template>
     </section>
 
     <section class="card">
@@ -281,6 +318,7 @@ const saveSettings = () => run(async () => {
 
 <style scoped>
 .ph { margin: 14px 0 8px; gap: 6px; }
+.kp-actions { margin: 12px 0 4px; gap: 8px; }
 .preview { white-space: pre-wrap; padding: 10px 12px; border-left: 3px solid var(--discord); background: color-mix(in srgb, var(--discord) 8%, var(--card)); border-radius: 6px; }
 .nowrap { white-space: nowrap; }
 .text { max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

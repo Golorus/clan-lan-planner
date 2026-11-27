@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, lte } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, lte } from 'drizzle-orm'
 import { formatEventRange } from '#shared/utils/eventTime'
 import { countdown, deadlineMs } from '#shared/utils/registration'
 import { CODE_MASK, moveMessageObsolete, renderMessage, type MessageVars } from '#shared/utils/messageText'
@@ -21,7 +21,8 @@ const RETRY_MS = 5 * 60_000
 
 export type AutoKind = 'registrierung' | 'umsetzung' | 'erinnerung_offen' | 'erinnerung_platz' | 'erinnerung_buchung'
   | 'buchung' | 'absage_kontakt' | 'angebot' | 'nachgerueckt_kontakt' | 'bereich'
-export type MessageKind = 'manuell' | AutoKind
+/** kontakt_offen: Übersicht der offenen Leute an eine Kontaktperson, per Knopf in /orga › Nachrichten (Text steht schon fertig drin) */
+export type MessageKind = 'manuell' | 'kontakt_offen' | AutoKind
 export interface AutoSetting { enabled: boolean, body: string }
 export type MessageSettings = Record<AutoKind, AutoSetting>
 
@@ -99,6 +100,34 @@ export function queueBatch(eventId: number, createdBy: string, target: string, b
   })
   kickMessageWorker()
   return batchId
+}
+
+/**
+ * Je Kontaktperson eine DM mit ihren offenen Leuten, als eine Rundnachricht in der Versandliste.
+ * Der Text ist schon fertig (wie /leute), weil er pro Kontaktperson anders ist; ohne Teilnahme (registrationId leer).
+ */
+export function queueContactOverviews(eventId: number, createdBy: string, items: { discordId: string, nick: string, text: string }[]) {
+  const now = new Date()
+  const batchId = useDb().transaction((tx) => {
+    const batch = tx.insert(tables.messageBatches).values({ eventId, createdAt: now, createdBy, target: 'Kontaktpersonen: ihre offenen Leute', body: 'Übersicht wie /leute (was noch fehlt), je Kontaktperson' }).returning({ id: tables.messageBatches.id }).get()
+    for (const it of items) {
+      tx.insert(tables.messageDeliveries).values({
+        batchId: batch.id, eventId, kind: 'kontakt_offen', body: it.text, registrationId: null, discordId: it.discordId, nick: it.nick,
+        status: 'wartet', sendAfter: now, createdAt: now,
+      }).run()
+    }
+    return batch.id
+  })
+  kickMessageWorker()
+  return batchId
+}
+
+/** Kontaktpersonen, die seit since schon eine solche Übersicht bekommen haben oder gerade bekommen (gegen doppeltes Anschreiben) */
+export function recentContactOverviews(eventId: number, since: Date) {
+  const D = tables.messageDeliveries
+  return new Set(useDb().select({ to: D.discordId }).from(D)
+    .where(and(eq(D.eventId, eventId), eq(D.kind, 'kontakt_offen'), inArray(D.status, ['wartet', 'gesendet']), gte(D.createdAt, since))).all()
+    .map(r => r.to).filter((x): x is string => !!x))
 }
 
 export interface QueueInput {
@@ -286,7 +315,7 @@ async function runWorker() {
         .orderBy(asc(D.sendAfter), asc(D.id)).limit(1).get()
       if (!next) break
       const reg = next.registrationId ? findRegistrationById(db, next.registrationId) : null
-      if (!reg && next.kind !== 'manuell') {
+      if (!reg && next.kind !== 'manuell' && next.kind !== 'kontakt_offen') {
         db.update(D).set({ status: 'fehler', error: 'Die Registrierung gibt es nicht mehr.' }).where(eq(D.id, next.id)).run()
         continue
       }
@@ -298,7 +327,8 @@ async function runWorker() {
       const withCode = CODE_KINDS.includes(next.kind)
       const vars = reg ? messageVars(reg, withCode) : { nick: next.nick, platz: '–', event: '', datum: '', kontakt: 'die Orga', link: appUrl() }
       if (next.kind === 'manuell') vars.code = CODE_MASK
-      const text = renderMessage(next.body, vars)
+      // Übersicht an Kontaktpersonen: fertiger Text, Nicks darin dürfen nicht als Platzhalter gelesen werden
+      const text = next.kind === 'kontakt_offen' ? next.body : renderMessage(next.body, vars)
       // gespeichert wird der Text immer ohne Buchungscode
       const stored = withCode ? renderMessage(next.body, { ...vars, code: CODE_MASK }) : text
       const components = next.components ? JSON.parse(next.components) as unknown[] : undefined

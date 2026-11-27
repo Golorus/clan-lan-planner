@@ -34,11 +34,19 @@ export interface OverviewOptions {
   bookingReleased: boolean
   /** Link zur ganzen Liste (nur für die Orga) */
   link?: string | null
+  /** Zeile(n) vor der Überschrift, z. B. der Gruß in der DM an Kontaktpersonen */
+  intro?: string | null
 }
 
 interface Group { key: string, title: string, people: OverviewPerson[], detail: boolean }
 
 const LIMIT = 2000
+
+/** Wie viele noch etwas zu tun haben (dieselben Gruppen wie „was noch fehlt“): Freigabe offen, nicht zugesagt, nicht gebucht, Warteliste */
+export function openCount(people: OverviewPerson[]) {
+  const open: Stage[] = ['offen', 'eingeladen', 'zugesagt', 'platziert', 'warteliste']
+  return people.filter(p => p.approvalPending || open.includes(p.stage)).length
+}
 
 function line(p: OverviewPerson) {
   const where = p.stage === 'platziert' ? `Platz ${p.seat}` : p.stage === 'gebucht' && p.seat ? `Platz ${p.seat}` : p.stage
@@ -49,7 +57,7 @@ function line(p: OverviewPerson) {
 export function peopleOverview(people: OverviewPerson[], o: OverviewOptions): string {
   const of = (...s: Stage[]) => people.filter(p => !p.approvalPending && s.includes(p.stage))
   const count = (s: Stage) => people.filter(p => !p.approvalPending && p.stage === s).length
-  const head = `**${o.title} · ${o.eventName}**`
+  const head = `${o.intro ? `${o.intro}\n\n` : ''}**${o.title} · ${o.eventName}**`
   const inEvent = people.filter(p => p.stage !== 'nicht' || p.approvalPending)
   const summary = [
     ['gebucht', count('gebucht')], ['platziert', count('platziert')], ['zugesagt', count('zugesagt')],
